@@ -85,6 +85,23 @@ The server will run on `http://localhost:5000`
 - `PUT /api/user/profile` - Update profile (requires auth)
   - Body: `{ username?, theme? }`
 
+### Links
+
+- `GET /api/links/search?query=keyword` - Search links (requires auth)
+  
+- `GET /api/links` - Get all links with pagination (requires auth)
+  - Query params: `page`, `limit`
+  
+- `GET /api/links/:id` - Get single link (requires auth)
+  
+- `POST /api/links` - Add new link (requires auth)
+  - Body: `{ title, url, description?, category?, tags? }`
+  
+- `PUT /api/links/:id` - Update link (requires auth)
+  - Body: `{ title?, url?, description?, category?, tags? }`
+  
+- `DELETE /api/links/:id` - Delete link (requires auth)
+
 ### Search History
 
 - `GET /api/search/history` - Get search history (requires auth)
@@ -110,11 +127,13 @@ backend/
 │   └── auth.js            # JWT authentication middleware
 ├── models/
 │   ├── User.js            # User model
-│   └── SearchHistory.js   # Search history model
+│   ├── SearchHistory.js   # Search history model
+│   └── Link.js            # Link model
 ├── routes/
 │   ├── auth.js            # Authentication routes
 │   ├── user.js            # User profile routes
-│   └── search.js          # Search history routes
+│   ├── search.js          # Search history routes
+│   └── links.js           # Links routes (search & CRUD)
 ├── .env                   # Environment variables (create this)
 ├── .gitignore
 ├── package.json

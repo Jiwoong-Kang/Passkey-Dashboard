@@ -143,6 +143,157 @@
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
+.results-section {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.results-header h2 {
+  color: #333;
+  font-size: 24px;
+  margin: 0;
+}
+
+.close-results-button {
+  padding: 8px 16px;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-results-button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.empty-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-results p {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result-item {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  transition: all 0.2s ease;
+}
+
+.result-item:hover {
+  background: #f0f1f3;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.result-title {
+  margin: 0;
+  font-size: 20px;
+  flex: 1;
+}
+
+.result-title a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.result-title a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.result-category {
+  padding: 4px 12px;
+  background: #667eea;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.result-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+.result-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.result-url {
+  color: #667eea;
+  font-size: 13px;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.2s ease;
+}
+
+.result-url:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.result-tag {
+  padding: 4px 10px;
+  background: #e0e0e0;
+  color: #555;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .history-section {
   background: white;
   padding: 30px;

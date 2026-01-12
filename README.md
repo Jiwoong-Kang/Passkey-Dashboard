@@ -116,12 +116,19 @@ See `SETUP.md` for detailed setup instructions.
 
 ## Usage
 
-1. Open http://localhost:5173 in your browser
-2. Click "Sign Up" to create a new account
-3. Login with your credentials
-4. Use the search bar to perform searches
-5. View your search history below
-6. Access settings to update your profile
+1. **Add Links to Database** (see `backend/HOW_TO_ADD_LINKS.md`)
+   - Use MongoDB Atlas web interface, OR
+   - Use MongoDB Compass, OR
+   - Use the API endpoint
+
+2. **Use the Application**
+   - Open http://localhost:5173 in your browser
+   - Click "Sign Up" to create a new account
+   - Login with your credentials
+   - Search for links using keywords
+   - View search results with links
+   - Check your search history
+   - Access settings to update your profile
 
 ## API Endpoints
 

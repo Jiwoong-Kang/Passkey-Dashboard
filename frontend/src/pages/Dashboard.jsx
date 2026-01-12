@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import searchService from '../services/searchService';
+import linkService from '../services/linkService';
 import './Dashboard.css';
 
 function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +50,14 @@ function Dashboard() {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setSearching(true);
       try {
+        // Search for links
+        const results = await linkService.searchLinks(searchQuery);
+        setSearchResults(results);
+        setShowResults(true);
+
+        // Save search to history
         const newSearch = await searchService.addSearch(searchQuery);
         const formattedSearch = {
           id: newSearch._id,
@@ -54,9 +65,10 @@ function Dashboard() {
           timestamp: new Date(newSearch.timestamp).toLocaleString('en-US')
         };
         setSearchHistory([formattedSearch, ...searchHistory]);
-        setSearchQuery('');
       } catch (error) {
-        alert('Failed to save search. Please try again.');
+        alert('Failed to search. Please try again.');
+      } finally {
+        setSearching(false);
       }
     }
   };
@@ -114,11 +126,61 @@ function Dashboard() {
               placeholder="Enter search query..."
               className="search-input"
             />
-            <button type="submit" className="search-button">
-              🔍 Search
+            <button type="submit" className="search-button" disabled={searching}>
+              {searching ? '⏳ Searching...' : '🔍 Search'}
             </button>
           </form>
         </div>
+
+        {showResults && (
+          <div className="results-section">
+            <div className="results-header">
+              <h2>Search Results ({searchResults.length})</h2>
+              <button onClick={() => setShowResults(false)} className="close-results-button">
+                ✕ Close
+              </button>
+            </div>
+
+            {searchResults.length === 0 ? (
+              <div className="empty-results">
+                <p>No links found.</p>
+                <p className="empty-subtitle">Try a different search term.</p>
+              </div>
+            ) : (
+              <div className="results-list">
+                {searchResults.map((link) => (
+                  <div key={link._id} className="result-item">
+                    <div className="result-header">
+                      <h3 className="result-title">
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                          {link.title}
+                        </a>
+                      </h3>
+                      {link.category && (
+                        <span className="result-category">{link.category}</span>
+                      )}
+                    </div>
+                    {link.description && (
+                      <p className="result-description">{link.description}</p>
+                    )}
+                    <div className="result-footer">
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="result-url">
+                        🔗 {link.url}
+                      </a>
+                      {link.tags && link.tags.length > 0 && (
+                        <div className="result-tags">
+                          {link.tags.map((tag, index) => (
+                            <span key={index} className="result-tag">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="history-section">
           <div className="history-header">
