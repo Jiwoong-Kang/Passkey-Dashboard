@@ -1,50 +1,77 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
+import userService from '../services/userService';
+import searchService from '../services/searchService';
 import './Settings.css';
 
 function Settings() {
   const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [theme, setTheme] = useState('light');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check login status
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (!isLoggedIn) {
+    if (!authService.isLoggedIn()) {
       navigate('/');
       return;
     }
 
-    // Get current username
-    const savedUsername = localStorage.getItem('username');
-    setUsername(savedUsername || 'User');
-    setNewUsername(savedUsername || '');
-
-    // Get theme setting
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
+    // Load user profile
+    loadProfile();
   }, [navigate]);
 
-  const handleUpdateUsername = (e) => {
-    e.preventDefault();
-    if (newUsername.trim()) {
-      localStorage.setItem('username', newUsername);
-      setUsername(newUsername);
-      alert('Name has been updated!');
+  const loadProfile = async () => {
+    try {
+      const profile = await userService.getProfile();
+      setUsername(profile.username);
+      setNewUsername(profile.username);
+      setTheme(profile.theme || 'light');
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+      const user = authService.getCurrentUser();
+      setUsername(user?.username || 'User');
+      setNewUsername(user?.username || '');
     }
   };
 
-  const handleThemeChange = (e) => {
-    const selectedTheme = e.target.value;
-    setTheme(selectedTheme);
-    localStorage.setItem('theme', selectedTheme);
+  const handleUpdateUsername = async (e) => {
+    e.preventDefault();
+    if (newUsername.trim() && newUsername !== username) {
+      setLoading(true);
+      try {
+        await userService.updateProfile({ username: newUsername });
+        setUsername(newUsername);
+        alert('Name has been updated!');
+      } catch (error) {
+        const message = error.response?.data?.message || 'Failed to update name.';
+        alert(message);
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  const handleClearHistory = () => {
+  const handleThemeChange = async (e) => {
+    const selectedTheme = e.target.value;
+    setTheme(selectedTheme);
+    try {
+      await userService.updateProfile({ theme: selectedTheme });
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+    }
+  };
+
+  const handleClearHistory = async () => {
     if (window.confirm('Are you sure you want to delete all search history?')) {
-      localStorage.setItem('searchHistory', JSON.stringify([]));
-      alert('Search history has been deleted.');
+      try {
+        await searchService.clearAllHistory();
+        alert('Search history has been deleted.');
+      } catch (error) {
+        alert('Failed to clear history. Please try again.');
+      }
     }
   };
 
@@ -53,7 +80,7 @@ function Settings() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
+    authService.logout();
     navigate('/');
   };
 
@@ -89,8 +116,8 @@ function Settings() {
                 placeholder="Enter new name"
               />
             </div>
-            <button type="submit" className="save-button">
-              Change Name
+            <button type="submit" className="save-button" disabled={loading}>
+              {loading ? 'Updating...' : 'Change Name'}
             </button>
           </form>
         </div>

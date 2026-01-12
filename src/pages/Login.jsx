@@ -1,27 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import './Login.css';
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username && password) {
-      // Simple login handling (in production, should communicate with server)
-      const users = JSON.parse(localStorage.getItem('users') || '{}');
-      
-      if (users[username] && users[username].password === password) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', username);
-        onLogin();
-      } else {
-        alert('Invalid username or password.');
-      }
-    } else {
+    
+    if (!username || !password) {
       alert('Please enter username and password.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await authService.login(username, password);
+      onLogin();
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to login. Please try again.';
+      alert(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,8 +61,8 @@ function Login({ onLogin }) {
             />
           </div>
           
-          <button type="submit" className="login-button">
-            Login
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

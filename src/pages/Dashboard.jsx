@@ -1,65 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
+import searchService from '../services/searchService';
 import './Dashboard.css';
 
 function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
   const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check login status
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (!isLoggedIn) {
+    if (!authService.isLoggedIn()) {
       navigate('/');
       return;
     }
 
     // Get username
-    const savedUsername = localStorage.getItem('username');
-    setUsername(savedUsername || 'User');
+    const user = authService.getCurrentUser();
+    setUsername(user?.username || 'User');
 
     // Load search history
-    const savedHistory = localStorage.getItem('searchHistory');
-    if (savedHistory) {
-      setSearchHistory(JSON.parse(savedHistory));
-    }
+    loadSearchHistory();
   }, [navigate]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      const newHistory = [
-        {
-          id: Date.now(),
-          query: searchQuery,
-          timestamp: new Date().toLocaleString('ko-KR')
-        },
-        ...searchHistory
-      ];
-      
-      setSearchHistory(newHistory);
-      localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-      setSearchQuery('');
+  const loadSearchHistory = async () => {
+    try {
+      const history = await searchService.getHistory();
+      // Format history for display
+      const formattedHistory = history.map(item => ({
+        id: item._id,
+        query: item.query,
+        timestamp: new Date(item.timestamp).toLocaleString('en-US')
+      }));
+      setSearchHistory(formattedHistory);
+    } catch (error) {
+      console.error('Failed to load search history:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteHistory = (id) => {
-    const updatedHistory = searchHistory.filter(item => item.id !== id);
-    setSearchHistory(updatedHistory);
-    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      try {
+        const newSearch = await searchService.addSearch(searchQuery);
+        const formattedSearch = {
+          id: newSearch._id,
+          query: newSearch.query,
+          timestamp: new Date(newSearch.timestamp).toLocaleString('en-US')
+        };
+        setSearchHistory([formattedSearch, ...searchHistory]);
+        setSearchQuery('');
+      } catch (error) {
+        alert('Failed to save search. Please try again.');
+      }
+    }
   };
 
-  const handleClearAllHistory = () => {
+  const handleDeleteHistory = async (id) => {
+    try {
+      await searchService.deleteHistory(id);
+      setSearchHistory(searchHistory.filter(item => item.id !== id));
+    } catch (error) {
+      alert('Failed to delete history. Please try again.');
+    }
+  };
+
+  const handleClearAllHistory = async () => {
     if (window.confirm('Are you sure you want to delete all search history?')) {
-      setSearchHistory([]);
-      localStorage.setItem('searchHistory', JSON.stringify([]));
+      try {
+        await searchService.clearAllHistory();
+        setSearchHistory([]);
+      } catch (error) {
+        alert('Failed to clear history. Please try again.');
+      }
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
+    authService.logout();
     navigate('/');
   };
 
@@ -107,7 +130,11 @@ function Dashboard() {
             )}
           </div>
 
-          {searchHistory.length === 0 ? (
+          {loading ? (
+            <div className="empty-history">
+              <p>Loading history...</p>
+            </div>
+          ) : searchHistory.length === 0 ? (
             <div className="empty-history">
               <p>No search history.</p>
               <p className="empty-subtitle">Start searching using the search bar above!</p>

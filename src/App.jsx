@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import authService from './services/authService';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
@@ -10,8 +11,7 @@ function App() {
 
   useEffect(() => {
     // Check login status
-    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    setIsLoggedIn(loggedIn);
+    setIsLoggedIn(authService.isLoggedIn());
   }, []);
 
   const handleLogin = () => {

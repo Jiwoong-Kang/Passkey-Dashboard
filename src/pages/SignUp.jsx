@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import './SignUp.css';
 
 function SignUp() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!username || !password || !confirmPassword) {
@@ -26,19 +28,18 @@ function SignUp() {
       return;
     }
 
-    // Save user credentials (in real app, send to server)
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    
-    if (users[username]) {
-      alert('Username already exists.');
-      return;
-    }
+    setLoading(true);
 
-    users[username] = { password };
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    alert('Account created successfully! Please login.');
-    navigate('/');
+    try {
+      await authService.signup(username, password);
+      alert('Account created successfully! Please login.');
+      navigate('/');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to create account. Please try again.';
+      alert(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,8 +85,8 @@ function SignUp() {
             />
           </div>
           
-          <button type="submit" className="signup-button">
-            Sign Up
+          <button type="submit" className="signup-button" disabled={loading}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
 
