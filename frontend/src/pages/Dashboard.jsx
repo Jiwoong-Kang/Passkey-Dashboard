@@ -10,9 +10,12 @@ function Dashboard() {
   const [searchHistory, setSearchHistory] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const [noResults, setNoResults] = useState(false);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [crawling, setCrawling] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,11 +54,25 @@ function Dashboard() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setSearching(true);
+      setCurrentSearchQuery(searchQuery);
+      setNoResults(false);
+      
       try {
-        // Search for links
-        const results = await linkService.searchLinks(searchQuery);
-        setSearchResults(results);
-        setShowResults(true);
+        // Search for links in database
+        const response = await linkService.searchLinks(searchQuery);
+        const results = response.links || response; // Handle both formats
+        
+        if (results.length === 0) {
+          // No results found in database
+          setSearchResults([]);
+          setNoResults(true);
+          setShowResults(true);
+        } else {
+          // Results found
+          setSearchResults(results);
+          setNoResults(false);
+          setShowResults(true);
+        }
 
         // Save search to history
         const newSearch = await searchService.addSearch(searchQuery);
@@ -70,6 +87,28 @@ function Dashboard() {
       } finally {
         setSearching(false);
       }
+    }
+  };
+
+  const handleCrawlWeb = async () => {
+    if (!currentSearchQuery) return;
+    
+    setCrawling(true);
+    try {
+      // Crawl the web
+      const response = await linkService.crawlWeb(currentSearchQuery);
+      
+      if (response.links && response.links.length > 0) {
+        setSearchResults(response.links);
+        setNoResults(false);
+        alert(`Found ${response.newLinksAdded} new links and added them to the database!`);
+      } else {
+        alert('No results found on the web either.');
+      }
+    } catch (error) {
+      alert('Failed to crawl web. Please try again.');
+    } finally {
+      setCrawling(false);
     }
   };
 
@@ -141,7 +180,19 @@ function Dashboard() {
               </button>
             </div>
 
-            {searchResults.length === 0 ? (
+            {noResults ? (
+              <div className="empty-results">
+                <p>No results found in database.</p>
+                <p className="empty-subtitle">Would you like to search the web?</p>
+                <button 
+                  onClick={handleCrawlWeb} 
+                  className="crawl-button"
+                  disabled={crawling}
+                >
+                  {crawling ? '🔄 Searching the web...' : '🌐 Search the Web'}
+                </button>
+              </div>
+            ) : searchResults.length === 0 ? (
               <div className="empty-results">
                 <p>No links found.</p>
                 <p className="empty-subtitle">Try a different search term.</p>

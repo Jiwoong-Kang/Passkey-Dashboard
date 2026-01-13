@@ -5,8 +5,10 @@ A modern dashboard application with user authentication, search functionality, a
 ## Features
 
 - 🔐 **User Authentication**: Sign up and login with JWT tokens
-- 🔍 **Search Function**: Perform searches and track history
+- 🔍 **Search Function**: Search database and web crawling
+- 🌐 **Web Crawling**: Automatically crawl web when no results found
 - 📝 **Search History**: View, manage, and delete search records
+- 🔗 **Link Management**: Store and organize links
 - ⚙️ **User Settings**: Update profile and preferences
 - 💾 **MongoDB Backend**: Persistent data storage
 
@@ -121,13 +123,19 @@ See `SETUP.md` for detailed setup instructions.
    - Use MongoDB Compass, OR
    - Use the API endpoint
 
-2. **Use the Application**
+2. **Configure Web Crawler** (optional - see `backend/CRAWLER_GUIDE.md`)
+   - Replace placeholder code in `backend/services/crawler.js`
+   - Choose your crawling method (Puppeteer, Cheerio, APIs, etc.)
+   - Install required packages
+
+3. **Use the Application**
    - Open http://localhost:5173 in your browser
    - Click "Sign Up" to create a new account
    - Login with your credentials
    - Search for links using keywords
-   - View search results with links
-   - Check your search history
+   - If no results found → Click "Search the Web" button
+   - Web crawler will find and save results automatically
+   - View search results and history
    - Access settings to update your profile
 
 ## API Endpoints

@@ -7,6 +7,12 @@ const linkService = {
     return response.data;
   },
 
+  // Crawl web for links
+  crawlWeb: async (query) => {
+    const response = await api.post('/links/crawl', { query });
+    return response.data;
+  },
+
   // Get all links
   getAllLinks: async (page = 1, limit = 50) => {
     const response = await api.get('/links', { params: { page, limit } });
