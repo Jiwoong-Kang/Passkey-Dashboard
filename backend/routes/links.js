@@ -14,10 +14,11 @@ router.get('/search', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    // Search in title, description, category, and tags
+    // Search in title, url, description, category, and tags
     const links = await Link.find({
       $or: [
         { title: { $regex: query, $options: 'i' } },
+        { url: { $regex: query, $options: 'i' } },
         { description: { $regex: query, $options: 'i' } },
         { category: { $regex: query, $options: 'i' } },
         { tags: { $regex: query, $options: 'i' } }
