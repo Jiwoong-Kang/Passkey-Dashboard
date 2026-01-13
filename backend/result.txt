@@ -1,0 +1,61 @@
+======================================================================
+PASSKEY DETECTION TEST RESULTS
+======================================================================
+Test Date: 1/12/2026, 9:02:04 PM
+Total Sites Tested: 10
+======================================================================
+
+SUMMARY
+----------------------------------------------------------------------
+Total Sites Tested: 10
+✓ Sites with Passkey Support: 9
+✗ Sites without Passkey Support: 1
+Success Rate: 90.0%
+======================================================================
+
+SITES WITH PASSKEY SUPPORT:
+----------------------------------------------------------------------
+1. https://github.com
+   Title: Sign in to GitHub · GitHub
+   Detection Method: Detected via passkey keywords on login page
+
+2. https://www.google.com
+   Title: Sign in - Google Accounts
+   Detection Method: Detected via passkey keywords on login page
+
+3. https://www.apple.com
+   Title: Manage your Apple Account
+   Detection Method: Detected via passkey keywords on login page
+
+4. https://www.microsoft.com
+   Title: Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps
+   Detection Method: Detected via passkey keywords
+
+5. https://www.amazon.com
+   Title: Amazon.com. Spend less. Smile more.
+   Detection Method: Detected via passkey keywords
+
+6. https://www.facebook.com
+   Title: Facebook - log in or sign up
+   Detection Method: Detected via passkey keywords
+
+7. https://twitter.com
+   Title: X. It’s what’s happening / X
+   Detection Method: Detected via passkey keywords
+
+8. https://www.linkedin.com
+   Title: LinkedIn Login, Sign in | LinkedIn
+   Detection Method: Detected via passkey keywords on login page
+
+9. https://www.dropbox.com
+   Title: Login or Sign Up - Dropbox
+   Detection Method: Detected via passkey keywords on login page
+
+
+SITES WITHOUT PASSKEY SUPPORT:
+----------------------------------------------------------------------
+1. https://www.paypal.com
+
+======================================================================
+END OF REPORT
+======================================================================
