@@ -8,7 +8,6 @@ import './Settings.css';
 function Settings() {
   const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
-  const [theme, setTheme] = useState('light');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -28,7 +27,6 @@ function Settings() {
       const profile = await userService.getProfile();
       setUsername(profile.username);
       setNewUsername(profile.username);
-      setTheme(profile.theme || 'light');
     } catch (error) {
       console.error('Failed to load profile:', error);
       const user = authService.getCurrentUser();
@@ -51,16 +49,6 @@ function Settings() {
       } finally {
         setLoading(false);
       }
-    }
-  };
-
-  const handleThemeChange = async (e) => {
-    const selectedTheme = e.target.value;
-    setTheme(selectedTheme);
-    try {
-      await userService.updateProfile({ theme: selectedTheme });
-    } catch (error) {
-      console.error('Failed to update theme:', error);
     }
   };
 
@@ -120,18 +108,6 @@ function Settings() {
               {loading ? 'Updating...' : 'Change Name'}
             </button>
           </form>
-        </div>
-
-        <div className="settings-section">
-          <h2>Theme Settings</h2>
-          <div className="setting-item">
-            <label htmlFor="theme">Select Theme</label>
-            <select id="theme" value={theme} onChange={handleThemeChange} className="theme-select">
-              <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
         </div>
 
         <div className="settings-section">
