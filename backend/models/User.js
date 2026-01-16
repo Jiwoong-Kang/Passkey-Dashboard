@@ -14,11 +14,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  theme: {
-    type: String,
-    default: 'light',
-    enum: ['light', 'dark', 'auto']
-  },
   createdAt: {
     type: Date,
     default: Date.now

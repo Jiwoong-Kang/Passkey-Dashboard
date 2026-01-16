@@ -83,7 +83,7 @@ The server will run on `http://localhost:5000`
 - `GET /api/user/profile` - Get user profile (requires auth)
   
 - `PUT /api/user/profile` - Update profile (requires auth)
-  - Body: `{ username?, theme? }`
+  - Body: `{ username? }`
 
 ### Links
 

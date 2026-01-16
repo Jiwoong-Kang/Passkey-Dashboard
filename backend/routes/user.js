@@ -16,7 +16,6 @@ router.get('/profile', authMiddleware, async (req, res) => {
     res.json({
       id: user._id,
       username: user.username,
-      theme: user.theme,
       createdAt: user.createdAt
     });
   } catch (error) {
@@ -28,7 +27,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 // Update user profile
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
-    const { username, theme } = req.body;
+    const { username } = req.body;
     const user = await User.findById(req.userId);
 
     if (!user) {
@@ -45,18 +44,13 @@ router.put('/profile', authMiddleware, async (req, res) => {
       user.username = username;
     }
 
-    if (theme) {
-      user.theme = theme;
-    }
-
     await user.save();
 
     res.json({
       message: 'Profile updated successfully',
       user: {
         id: user._id,
-        username: user.username,
-        theme: user.theme
+        username: user.username
       }
     });
   } catch (error) {
