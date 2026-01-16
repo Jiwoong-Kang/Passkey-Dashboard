@@ -1,7 +1,7 @@
 ======================================================================
 PASSKEY DETECTION TEST RESULTS
 ======================================================================
-Test Date: 1/12/2026, 9:02:04 PM
+Test Date: 1/15/2026, 9:13:21 PM
 Total Sites Tested: 10
 ======================================================================
 
@@ -36,7 +36,7 @@ SITES WITH PASSKEY SUPPORT:
    Detection Method: Detected via passkey keywords
 
 6. https://www.facebook.com
-   Title: Facebook - log in or sign up
+   Title: Facebook
    Detection Method: Detected via passkey keywords
 
 7. https://twitter.com

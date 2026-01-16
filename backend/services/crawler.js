@@ -162,8 +162,8 @@ export async function detectPasskey(url) {
       console.log('[Crawler] Network still active, continuing anyway');
     }
     
-    // Additional wait for dynamic content
-    await page.waitForTimeout(3000);
+    // Additional wait for dynamic content (ethical crawling: 5 seconds)
+    await page.waitForTimeout(5000);
     
     // First check: Current page
     let result = await checkForPasskeyOnPage(page);
@@ -192,8 +192,8 @@ export async function detectPasskey(url) {
           console.log('[Crawler] Page still loading, continuing');
         }
         
-        // Additional wait for dynamic content
-        await page.waitForTimeout(3000);
+        // Additional wait for dynamic content (ethical crawling: 5 seconds)
+        await page.waitForTimeout(5000);
         
         // Check for passkey on login page
         result = await checkForPasskeyOnPage(page);
@@ -222,8 +222,8 @@ export async function detectPasskey(url) {
               console.log('[Crawler] Page still loading after email');
             }
             
-            // Additional wait
-            await page.waitForTimeout(3000);
+            // Additional wait (ethical crawling: 5 seconds)
+            await page.waitForTimeout(5000);
             
             // Check for passkey
             result = await checkForPasskeyOnPage(page);
@@ -275,8 +275,8 @@ export async function detectPasskey(url) {
  */
 async function checkForPasskeyOnPage(page) {
   try {
-    // Playwright automatically waits for elements, but add a small delay for dynamic content
-    await page.waitForTimeout(2000);
+    // Playwright automatically waits for elements, but add delay for dynamic content (ethical crawling)
+    await page.waitForTimeout(5000);
     
     // Ensure body is loaded (Playwright handles this better)
     try {
@@ -403,7 +403,7 @@ async function navigateToLogin(page) {
           // Wait for navigation (Playwright follows redirects automatically)
           await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
           await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
           
           console.log(`[Crawler] Navigated to: ${page.url()}`);
           return true;
@@ -425,7 +425,7 @@ async function navigateToLogin(page) {
           await loginButton.click({ timeout: 5000 });
           await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
           await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
           
           console.log(`[Crawler] Navigated to: ${page.url()}`);
           return true;
@@ -446,7 +446,7 @@ async function navigateToLogin(page) {
           await link.click({ timeout: 5000 });
           await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
           await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
           
           console.log(`[Crawler] Navigated to: ${page.url()}`);
           return true;
@@ -484,7 +484,7 @@ async function navigateToLogin(page) {
         if (response && response.status() < 400) {
           console.log(`[Crawler] Success! Final URL: ${page.url()}`);
           await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
           return true;
         }
       } catch (e) {
