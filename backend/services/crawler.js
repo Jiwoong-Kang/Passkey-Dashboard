@@ -49,24 +49,65 @@ export const crawlWeb = async (query) => {
 };
 
 /**
- * Search for websites using Google (mock implementation)
- * Replace this with actual search API or scraping
- * @param {string} query - Search query
- * @returns {Promise<Array>} - Array of search results
+ * Convert search query to URLs for crawling
+ * @param {string} query - Search query (domain name or URL)
+ * @returns {Promise<Array>} - Array of URLs to check
  */
 async function searchForSites(query) {
-  // TODO: Implement actual search (Google Custom Search API, Bing API, etc.)
-  // For now, return mock results for common sites
+  const results = [];
   
-  const mockSites = [
-    { title: 'GitHub', url: 'https://github.com' },
-    { title: 'Google', url: 'https://accounts.google.com' },
-    { title: 'Microsoft', url: 'https://login.microsoft.com' },
-    { title: 'Apple', url: 'https://appleid.apple.com' },
-    { title: 'PayPal', url: 'https://www.paypal.com' }
+  // Clean up the query
+  const cleanQuery = query.trim().toLowerCase();
+  
+  // Check if query is already a URL
+  if (cleanQuery.startsWith('http://') || cleanQuery.startsWith('https://')) {
+    try {
+      const url = new URL(cleanQuery);
+      results.push({
+        title: url.hostname,
+        url: cleanQuery
+      });
+      return results;
+    } catch (e) {
+      // Invalid URL, treat as domain name
+    }
+  }
+  
+  // Extract domain name from query (remove spaces, special chars)
+  let domain = cleanQuery
+    .replace(/\s+/g, '')  // Remove spaces
+    .replace(/[^a-z0-9.-]/g, '');  // Keep only alphanumeric, dots, hyphens
+  
+  // Remove common prefixes if present
+  domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
+  
+  // Generate title (capitalize first letter of each word)
+  const title = query
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  
+  // Try multiple URL variations
+  const urlVariations = [
+    `https://www.${domain}.com`,
+    `https://${domain}.com`,
+    `https://www.${domain}`,
+    `https://${domain}`
   ];
   
-  return mockSites;
+  // Add unique variations only
+  const uniqueUrls = [...new Set(urlVariations)];
+  
+  for (const url of uniqueUrls) {
+    results.push({
+      title: title,
+      url: url
+    });
+  }
+  
+  console.log(`[Crawler] Generated ${results.length} URL variations for query: "${query}"`);
+  return results;
 }
 
 /**
