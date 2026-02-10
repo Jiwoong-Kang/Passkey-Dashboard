@@ -1,7 +1,7 @@
 ======================================================================
 PASSKEY DETECTION TEST RESULTS
 ======================================================================
-Test Date: 2/10/2026, 3:05:46 PM
+Test Date: 2/10/2026, 3:51:24 PM
 Total Sites Tested: 10
 ======================================================================
 
@@ -18,7 +18,7 @@ SITES WITH PASSKEY SUPPORT:
 1. https://www.google.com
    Title: Sign in - Google Accounts
    Detection Method: Detected via passkey keywords on login page
-   Passkey Found At: https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fwww.google.com%2F&dsh=S-583860605%3A1770761157854762&ec=futura_exp_og_so_72776762_e&hl=en&ifkv=AXbMIuAdJEnjnCseidNLfZGO02g8i1FpbNiNrQYikCOTYLFHxtHQWMG-dE-l481WAsmgFhnjxTlWVw&passive=true&flowName=GlifWebSignIn&flowEntry=ServiceLogin
+   Passkey Found At: https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fwww.google.com%2F&dsh=S1327936076%3A1770763897552926&ec=futura_exp_og_so_72776762_e&hl=en&ifkv=AXbMIuDRgu0CH05Tn9kCnQ94C2qifJO8Gt0SGI-SbgD2J-naB2YBNDPQxxql9HM-JWS6rOj2NRcOmA&passive=true&flowName=GlifWebSignIn&flowEntry=ServiceLogin
 
 2. https://www.microsoft.com
    Title: Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps
@@ -43,7 +43,7 @@ SITES WITH PASSKEY SUPPORT:
 6. https://www.live.com
    Title: Sign in to your account
    Detection Method: Detected via passkey keywords on login page
-   Passkey Found At: https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=9199bf20-a13f-4107-85dc-02114787ef48&scope=https%3A%2F%2Foutlook.office.com%2F.default%20openid%20profile%20offline_access&redirect_uri=https%3A%2F%2Foutlook.live.com%2Fmail%2F&client-request-id=b9c3ff29-a7bd-ebe3-0880-5b8041a6de86&response_mode=fragment&client_info=1&prompt=select_account&nonce=019c4999-5e7c-781e-94ac-759ed96117ee&state=eyJpZCI6IjAxOWM0OTk5LTVlN2ItNzBiNS1hOTcxLTljY2UzZWM2OWE5OSIsIm1ldGEiOnsiaW50ZXJhY3Rpb25UeXBlIjoicmVkaXJlY3QifX0%3D%7CaHR0cHM6Ly9vdXRsb29rLmxpdmUuY29tL21haWwvMC8_ZGVlcGxpbms9bWFpbCUyRjAlMkY&claims=%7B%22access_token%22%3A%7B%22xms_cc%22%3A%7B%22values%22%3A%5B%22CP1%22%5D%7D%7D%7D&x-client-SKU=msal.js.browser&x-client-VER=4.26.0&response_type=code&code_challenge=Cfx3QoVRNYjNrefyPdf6e8IvL1PbtkTDrKmtMIS8Uq0&code_challenge_method=S256&cobrandid=ab0455a0-8d03-46b9-b18b-df2f57b9e44c&fl=dob,flname,wld
+   Passkey Found At: https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=9199bf20-a13f-4107-85dc-02114787ef48&scope=https%3A%2F%2Foutlook.office.com%2F.default%20openid%20profile%20offline_access&redirect_uri=https%3A%2F%2Foutlook.live.com%2Fmail%2F&client-request-id=2791de85-3f6e-f40a-8c14-3ca8d147a455&response_mode=fragment&client_info=1&prompt=select_account&nonce=019c49c2-ecc2-793a-b6da-1f2c405887e8&state=eyJpZCI6IjAxOWM0OWMyLWVjYzItN2ViMC04Yzc1LTc5MDJiNWIwYjg1ZCIsIm1ldGEiOnsiaW50ZXJhY3Rpb25UeXBlIjoicmVkaXJlY3QifX0%3D%7CaHR0cHM6Ly9vdXRsb29rLmxpdmUuY29tL21haWwvMC8_ZGVlcGxpbms9bWFpbCUyRjAlMkY&claims=%7B%22access_token%22%3A%7B%22xms_cc%22%3A%7B%22values%22%3A%5B%22CP1%22%5D%7D%7D%7D&x-client-SKU=msal.js.browser&x-client-VER=4.26.0&response_type=code&code_challenge=fnJw6PG8B9dd4qM7EVPtE0QlAqJd76WjZLbOBQMHTFY&code_challenge_method=S256&cobrandid=ab0455a0-8d03-46b9-b18b-df2f57b9e44c&fl=dob,flname,wld
 
 7. https://www.amazon.com
    Title: Amazon.com. Spend less. Smile more.

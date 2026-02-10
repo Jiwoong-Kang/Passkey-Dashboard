@@ -408,16 +408,28 @@ async function navigateToLogin(page) {
         if (await loginElement.count() > 0 && await loginElement.isVisible()) {
           console.log(`[Crawler] Found login link with pattern: ${pattern}`);
           
-          // Click and automatically follow redirects
+          const urlBefore = page.url();
+          
+          // Click and check for changes
           await loginElement.click({ timeout: 5000 });
           
-          // Wait for navigation (Playwright follows redirects automatically)
-          await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
-          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
+          // Wait for either navigation OR DOM changes (modal/SPA)
+          await Promise.race([
+            page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {}),
+            page.waitForSelector('input[type="email"], input[type="text"], input[type="password"]', { timeout: 8000 }).catch(() => {})
+          ]);
           
-          console.log(`[Crawler] Navigated to: ${page.url()}`);
-          return true;
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds
+          
+          const urlAfter = page.url();
+          
+          // Check if URL changed OR login form appeared
+          const hasLoginForm = await page.locator('input[type="email"], input[type="text"], input[type="password"]').count() > 0;
+          
+          if (urlAfter !== urlBefore || hasLoginForm) {
+            console.log(`[Crawler] Navigated to: ${urlAfter} ${hasLoginForm ? '(login form detected)' : ''}`);
+            return true;
+          }
         }
       } catch (e) {
         // Try next pattern
@@ -433,13 +445,27 @@ async function navigateToLogin(page) {
         if (await loginButton.count() > 0 && await loginButton.isVisible()) {
           console.log(`[Crawler] Found login button with pattern: ${pattern}`);
           
-          await loginButton.click({ timeout: 5000 });
-          await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
-          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
+          const urlBefore = page.url();
           
-          console.log(`[Crawler] Navigated to: ${page.url()}`);
-          return true;
+          await loginButton.click({ timeout: 5000 });
+          
+          // Wait for either navigation OR DOM changes (modal/SPA)
+          await Promise.race([
+            page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {}),
+            page.waitForSelector('input[type="email"], input[type="text"], input[type="password"]', { timeout: 8000 }).catch(() => {})
+          ]);
+          
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds
+          
+          const urlAfter = page.url();
+          
+          // Check if URL changed OR login form appeared
+          const hasLoginForm = await page.locator('input[type="email"], input[type="text"], input[type="password"]').count() > 0;
+          
+          if (urlAfter !== urlBefore || hasLoginForm) {
+            console.log(`[Crawler] Navigated to: ${urlAfter} ${hasLoginForm ? '(login form detected)' : ''}`);
+            return true;
+          }
         }
       } catch (e) {
         continue;
@@ -454,13 +480,25 @@ async function navigateToLogin(page) {
         if (await link.isVisible()) {
           console.log(`[Crawler] Found login href link`);
           
-          await link.click({ timeout: 5000 });
-          await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
-          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
+          const urlBefore = page.url();
           
-          console.log(`[Crawler] Navigated to: ${page.url()}`);
-          return true;
+          await link.click({ timeout: 5000 });
+          
+          // Wait for either navigation OR DOM changes
+          await Promise.race([
+            page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {}),
+            page.waitForSelector('input[type="email"], input[type="text"], input[type="password"]', { timeout: 8000 }).catch(() => {})
+          ]);
+          
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds
+          
+          const urlAfter = page.url();
+          const hasLoginForm = await page.locator('input[type="email"], input[type="text"], input[type="password"]').count() > 0;
+          
+          if (urlAfter !== urlBefore || hasLoginForm) {
+            console.log(`[Crawler] Navigated to: ${urlAfter} ${hasLoginForm ? '(login form detected)' : ''}`);
+            return true;
+          }
         }
       }
     } catch (e) {
@@ -494,8 +532,14 @@ async function navigateToLogin(page) {
         // Check if we got a valid page (not 404/500)
         if (response && response.status() < 400) {
           console.log(`[Crawler] Success! Final URL: ${page.url()}`);
-          await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds between pages
+          
+          // Wait for login form to load
+          await Promise.race([
+            page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {}),
+            page.waitForSelector('input[type="email"], input[type="text"], input[type="password"]', { timeout: 5000 }).catch(() => {})
+          ]);
+          
+          await page.waitForTimeout(5000);  // Ethical crawling: 5 seconds
           return true;
         }
       } catch (e) {
