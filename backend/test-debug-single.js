@@ -3,7 +3,7 @@
 
 import { chromium } from 'playwright';
 
-const url = process.argv[2] || 'https://github.com';
+const url = process.argv[2] || 'https://icloud.com';
 
 console.log('='.repeat(70));
 console.log('🔍 Debug Mode - Detailed Passkey Detection');

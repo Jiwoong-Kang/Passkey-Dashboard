@@ -88,23 +88,25 @@ async function searchForSites(query) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
   
-  // Try multiple URL variations
-  const urlVariations = [
-    `https://www.${domain}.com`,
-    `https://${domain}.com`,
-    `https://www.${domain}`,
-    `https://${domain}`
-  ];
+  // Check if domain already has a TLD (e.g., .com, .net, .org, .co.kr)
+  const hasTLD = /\.[a-z]{2,}$/i.test(domain);
   
-  // Add unique variations only
-  const uniqueUrls = [...new Set(urlVariations)];
+  // Generate the best URL based on whether TLD exists
+  let url;
   
-  for (const url of uniqueUrls) {
-    results.push({
-      title: title,
-      url: url
-    });
+  if (hasTLD) {
+    // Domain already has TLD, don't add .com
+    url = `https://www.${domain}`;
+  } else {
+    // No TLD, add .com
+    url = `https://www.${domain}.com`;
   }
+  
+  // Return single best URL
+  results.push({
+    title: title,
+    url: url
+  });
   
   console.log(`[Crawler] Generated ${results.length} URL variations for query: "${query}"`);
   return results;
@@ -170,12 +172,14 @@ export async function detectPasskey(url) {
     
     if (result.found) {
       const title = await page.title();
+      const foundUrl = page.url();
       await browser.close();
       return {
         hasPasskey: true,
         detectionMethod: `Detected via ${result.method}`,
         title: title,
-        description: `Found passkey support on main page`
+        description: `Found passkey support on main page`,
+        foundAtUrl: foundUrl
       };
     }
     
@@ -200,12 +204,14 @@ export async function detectPasskey(url) {
         
         if (result.found) {
           const title = await page.title();
+          const foundUrl = page.url();
           await browser.close();
           return {
             hasPasskey: true,
             detectionMethod: `Detected via ${result.method} on login page`,
             title: title,
-            description: `Found passkey support on login page`
+            description: `Found passkey support on login page`,
+            foundAtUrl: foundUrl
           };
         }
           
@@ -230,12 +236,14 @@ export async function detectPasskey(url) {
             
             if (result.found) {
               const title = await page.title();
+              const foundUrl = page.url();
               await browser.close();
               return {
                 hasPasskey: true,
                 detectionMethod: `Detected via ${result.method} after email entry`,
                 title: title,
-                description: `Found passkey support in authentication flow`
+                description: `Found passkey support in authentication flow`,
+                foundAtUrl: foundUrl
               };
             }
           }
@@ -249,12 +257,15 @@ export async function detectPasskey(url) {
     
     // Check network requests
     if (fido2Requests.length > 0) {
+      const title = await page.title();
+      const foundUrl = page.url();
       await browser.close();
       return {
         hasPasskey: true,
         detectionMethod: 'Detected via network requests',
-        title: await page.title(),
-        description: `Found FIDO2/WebAuthn network requests`
+        title: title,
+        description: `Found FIDO2/WebAuthn network requests`,
+        foundAtUrl: foundUrl
       };
     }
     

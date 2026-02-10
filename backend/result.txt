@@ -1,7 +1,7 @@
 ======================================================================
 PASSKEY DETECTION TEST RESULTS
 ======================================================================
-Test Date: 1/15/2026, 9:13:21 PM
+Test Date: 2/10/2026, 3:05:46 PM
 Total Sites Tested: 10
 ======================================================================
 
@@ -15,46 +15,55 @@ Success Rate: 90.0%
 
 SITES WITH PASSKEY SUPPORT:
 ----------------------------------------------------------------------
-1. https://github.com
-   Title: Sign in to GitHub · GitHub
-   Detection Method: Detected via passkey keywords on login page
-
-2. https://www.google.com
+1. https://www.google.com
    Title: Sign in - Google Accounts
    Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fwww.google.com%2F&dsh=S-583860605%3A1770761157854762&ec=futura_exp_og_so_72776762_e&hl=en&ifkv=AXbMIuAdJEnjnCseidNLfZGO02g8i1FpbNiNrQYikCOTYLFHxtHQWMG-dE-l481WAsmgFhnjxTlWVw&passive=true&flowName=GlifWebSignIn&flowEntry=ServiceLogin
+
+2. https://www.microsoft.com
+   Title: Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps
+   Detection Method: Detected via passkey keywords
+   Passkey Found At: https://www.microsoft.com/en-us
 
 3. https://www.apple.com
    Title: Manage your Apple Account
    Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://account.apple.com/
 
-4. https://www.microsoft.com
-   Title: Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps
-   Detection Method: Detected via passkey keywords
-
-5. https://www.amazon.com
-   Title: Amazon.com. Spend less. Smile more.
-   Detection Method: Detected via passkey keywords
-
-6. https://www.facebook.com
-   Title: Facebook
-   Detection Method: Detected via passkey keywords
-
-7. https://twitter.com
+4. https://www.twitter.com
    Title: X. It’s what’s happening / X
    Detection Method: Detected via passkey keywords
+   Passkey Found At: https://x.com/
 
-8. https://www.linkedin.com
+5. https://www.linkedin.com
    Title: LinkedIn Login, Sign in | LinkedIn
    Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://www.linkedin.com/login?fromSignIn=true&trk=guest_homepage-basic_nav-header-signin
 
-9. https://www.dropbox.com
-   Title: Login or Sign Up - Dropbox
+6. https://www.live.com
+   Title: Sign in to your account
    Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=9199bf20-a13f-4107-85dc-02114787ef48&scope=https%3A%2F%2Foutlook.office.com%2F.default%20openid%20profile%20offline_access&redirect_uri=https%3A%2F%2Foutlook.live.com%2Fmail%2F&client-request-id=b9c3ff29-a7bd-ebe3-0880-5b8041a6de86&response_mode=fragment&client_info=1&prompt=select_account&nonce=019c4999-5e7c-781e-94ac-759ed96117ee&state=eyJpZCI6IjAxOWM0OTk5LTVlN2ItNzBiNS1hOTcxLTljY2UzZWM2OWE5OSIsIm1ldGEiOnsiaW50ZXJhY3Rpb25UeXBlIjoicmVkaXJlY3QifX0%3D%7CaHR0cHM6Ly9vdXRsb29rLmxpdmUuY29tL21haWwvMC8_ZGVlcGxpbms9bWFpbCUyRjAlMkY&claims=%7B%22access_token%22%3A%7B%22xms_cc%22%3A%7B%22values%22%3A%5B%22CP1%22%5D%7D%7D%7D&x-client-SKU=msal.js.browser&x-client-VER=4.26.0&response_type=code&code_challenge=Cfx3QoVRNYjNrefyPdf6e8IvL1PbtkTDrKmtMIS8Uq0&code_challenge_method=S256&cobrandid=ab0455a0-8d03-46b9-b18b-df2f57b9e44c&fl=dob,flname,wld
+
+7. https://www.amazon.com
+   Title: Amazon.com. Spend less. Smile more.
+   Detection Method: Detected via passkey keywords
+   Passkey Found At: https://www.amazon.com/
+
+8. https://www.github.com
+   Title: Sign in to GitHub · GitHub
+   Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://github.com/login
+
+9. https://www.yahoo.com
+   Title: Login - Sign in to Yahoo
+   Detection Method: Detected via passkey keywords on login page
+   Passkey Found At: https://login.yahoo.com/?.lang=en-US&src=frontpage&done=https%3A%2F%2Fwww.yahoo.com%2F&intl=us
 
 
 SITES WITHOUT PASSKEY SUPPORT:
 ----------------------------------------------------------------------
-1. https://www.paypal.com
+1. https://www.icloud.com
 
 ======================================================================
 END OF REPORT

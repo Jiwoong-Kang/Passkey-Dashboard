@@ -1,0 +1,10 @@
+mail.ru
+facebook.com
+amazonaws.com
+dzen.ru
+googleapis.com
+youtube.com
+cloudflare.com
+akamai.net
+instagram.com
+root-servers.net

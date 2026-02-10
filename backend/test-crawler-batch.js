@@ -4,8 +4,36 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { detectPasskey } from './services/crawler.js';
 
-const SITES_FILE = './test-sites.txt';
-const RESULTS_FILE = './result.txt';
+// Helper function to convert domain to URL
+function domainToUrl(query) {
+  const cleanQuery = query.trim().toLowerCase();
+  
+  // Check if query is already a URL
+  if (cleanQuery.startsWith('http://') || cleanQuery.startsWith('https://')) {
+    return cleanQuery;
+  }
+  
+  // Extract domain name from query
+  let domain = cleanQuery
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9.-]/g, '');
+  
+  domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
+  
+  // Check if domain already has a TLD (e.g., .com, .net, .org, .co.kr)
+  const hasTLD = /\.[a-z]{2,}$/i.test(domain);
+  
+  // Add .com only if no TLD exists
+  if (!hasTLD) {
+    domain = `${domain}.com`;
+  }
+  
+  // Return URL with www
+  return `https://www.${domain}`;
+}
+
+const SITES_FILE = './test-sites2.txt';
+const RESULTS_FILE = './result2.txt';
 
 console.log('='.repeat(70));
 console.log('🔍 Batch Passkey Detection Test');
@@ -35,30 +63,37 @@ async function runTests() {
   resultText += '='.repeat(70) + '\n\n';
   
   for (let i = 0; i < sites.length; i++) {
-    const url = sites[i].trim();
-    console.log(`[${i + 1}/${sites.length}] Testing: ${url}`);
+    const domain = sites[i].trim();
+    console.log(`[${i + 1}/${sites.length}] Testing: ${domain}`);
     
     try {
+      // Convert domain to URL
+      const url = domainToUrl(domain);
+      
+      console.log(`    Converted to: ${url}`);
+      
       const result = await detectPasskey(url);
       
       results.push({
         url,
         hasPasskey: result.hasPasskey,
         method: result.detectionMethod || 'N/A',
-        title: result.title || 'Unknown'
+        title: result.title || 'Unknown',
+        foundAtUrl: result.foundAtUrl || 'N/A'
       });
       
       const status = result.hasPasskey ? '✓ PASSKEY FOUND' : '✗ NO PASSKEY';
       console.log(`    ${status}`);
       if (result.hasPasskey) {
         console.log(`    Method: ${result.detectionMethod}`);
+        console.log(`    Found at: ${result.foundAtUrl}`);
       }
       console.log('');
       
     } catch (error) {
       console.error(`    ❌ Error: ${error.message}\n`);
       results.push({
-        url,
+        url: domain,
         hasPasskey: false,
         method: 'Error',
         error: error.message
@@ -86,6 +121,7 @@ async function runTests() {
       resultText += `${index + 1}. ${result.url}\n`;
       resultText += `   Title: ${result.title}\n`;
       resultText += `   Detection Method: ${result.method}\n`;
+      resultText += `   Passkey Found At: ${result.foundAtUrl}\n`;
       resultText += '\n';
     });
     resultText += '\n';

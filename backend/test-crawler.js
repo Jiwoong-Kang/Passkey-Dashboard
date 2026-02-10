@@ -4,7 +4,7 @@
 import { crawlWeb } from './services/crawler.js';
 
 // Get search query from command line argument, default to "github"
-const query = process.argv[2] || 'github';
+const query = process.argv[2] || 'icloud';
 
 console.log('='.repeat(60));
 console.log('🔍 Testing Passkey Crawler');
