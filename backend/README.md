@@ -1,8 +1,10 @@
-# Dashboard Backend
+# Passkey Dashboard — Backend
 
-Backend server for the Dashboard application using Express.js and MongoDB.
+Express.js backend server for the Passkey Dashboard application. Handles authentication, web crawling, link storage, and search history.
 
-## Setup Instructions
+---
+
+## Setup
 
 ### 1. Install Dependencies
 
@@ -13,49 +15,26 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the `backend` folder with the following content:
+Create a `.env` file in the `backend/` folder:
 
 ```env
-# MongoDB Connection String
-MONGODB_URI=your_mongodb_connection_string_here
-
-# JWT Secret Key (use a random string)
-JWT_SECRET=your_jwt_secret_key_here
-
-# Server Port
-PORT=5000
-
-# Node Environment
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_random_secret_key
+PORT=5001
 NODE_ENV=development
 ```
 
-**Important:** Replace the placeholder values with your actual configuration:
+- **MONGODB_URI**: Your MongoDB Atlas connection string  
+  Format: `mongodb+srv://username:password@cluster.mongodb.net/dbname`
+- **JWT_SECRET**: Any random secure string. Generate one with:  
+  ```bash
+  openssl rand -base64 32
+  ```
+- **PORT**: Defaults to `5001`. The frontend is configured to call this port.
 
-- `MONGODB_URI`: Your MongoDB connection string
-  - For MongoDB Atlas: `mongodb+srv://username:password@cluster.mongodb.net/database-name`
-  - For local MongoDB: `mongodb://localhost:27017/dashboard`
-- `JWT_SECRET`: A random secure string (e.g., generate one using `openssl rand -base64 32`)
+### 3. Run the Server
 
-### 3. Get MongoDB Connection String
-
-#### Option A: MongoDB Atlas (Cloud - Recommended)
-
-1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a free account and cluster
-3. Click "Connect" on your cluster
-4. Choose "Connect your application"
-5. Copy the connection string
-6. Replace `<password>` with your database user password
-
-#### Option B: Local MongoDB
-
-1. Install MongoDB on your computer
-2. Start MongoDB service
-3. Use connection string: `mongodb://localhost:27017/dashboard`
-
-### 4. Run the Server
-
-Development mode (with auto-reload):
+Development mode (auto-restarts on file changes):
 ```bash
 npm run dev
 ```
@@ -65,103 +44,172 @@ Production mode:
 npm start
 ```
 
-The server will run on `http://localhost:5000`
+Server runs at: `http://localhost:5001`
 
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/signup` - Create new account
-  - Body: `{ username, password }`
-  
-- `POST /api/auth/login` - Login
-  - Body: `{ username, password }`
-  - Returns: `{ token, user }`
-
-### User Profile
-
-- `GET /api/user/profile` - Get user profile (requires auth)
-  
-- `PUT /api/user/profile` - Update profile (requires auth)
-  - Body: `{ username? }`
-
-### Links
-
-- `GET /api/links/search?query=keyword` - Search links (requires auth)
-  
-- `GET /api/links` - Get all links with pagination (requires auth)
-  - Query params: `page`, `limit`
-  
-- `GET /api/links/:id` - Get single link (requires auth)
-  
-- `POST /api/links` - Add new link (requires auth)
-  - Body: `{ title, url, description?, category?, tags? }`
-  
-- `PUT /api/links/:id` - Update link (requires auth)
-  - Body: `{ title?, url?, description?, category?, tags? }`
-  
-- `DELETE /api/links/:id` - Delete link (requires auth)
-
-### Search History
-
-- `GET /api/search/history` - Get search history (requires auth)
-  
-- `POST /api/search/history` - Add search (requires auth)
-  - Body: `{ query }`
-  
-- `DELETE /api/search/history/:id` - Delete specific history (requires auth)
-  
-- `DELETE /api/search/history` - Clear all history (requires auth)
-
-### Health Check
-
-- `GET /api/health` - Server health check
+---
 
 ## Project Structure
 
 ```
 backend/
 ├── config/
-│   └── db.js              # Database configuration
+│   └── db.js              # MongoDB connection
 ├── middleware/
-│   └── auth.js            # JWT authentication middleware
+│   └── auth.js            # JWT verification middleware
 ├── models/
-│   ├── User.js            # User model
-│   ├── SearchHistory.js   # Search history model
-│   └── Link.js            # Link model
+│   ├── User.js            # User account model
+│   ├── Link.js            # Discovered site model (hasPasskey field)
+│   └── SearchHistory.js   # Per-user search history model
 ├── routes/
-│   ├── auth.js            # Authentication routes
-│   ├── user.js            # User profile routes
-│   ├── search.js          # Search history routes
-│   └── links.js           # Links routes (search & CRUD)
-├── .env                   # Environment variables (create this)
-├── .gitignore
+│   ├── auth.js            # Signup / Login
+│   ├── user.js            # User profile
+│   ├── links.js           # Site search, crawling, public dashboards
+│   └── search.js          # Search history
+├── services/
+│   └── crawler.js         # Playwright-based Passkey detection crawler
+├── .env                   # Environment variables (you must create this)
 ├── package.json
-├── server.js              # Main server file
-└── README.md
+└── server.js              # App entry point
 ```
 
-## Authentication
+---
 
-The API uses JWT (JSON Web Tokens) for authentication. After login, include the token in the Authorization header:
+## API Endpoints
+
+All endpoints marked **(auth)** require a `Bearer` token in the `Authorization` header.
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/signup` | Create a new account |
+| POST | `/api/auth/login` | Login and receive a JWT token |
+
+**Signup / Login body:**
+```json
+{ "username": "yourname", "password": "yourpassword" }
+```
+
+**Login response:**
+```json
+{ "token": "<jwt>", "user": { "id": "...", "username": "..." } }
+```
+
+---
+
+### User Profile
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/user/profile` | Get current user's profile **(auth)** |
+| PUT | `/api/user/profile` | Update username **(auth)** |
+
+---
+
+### Links (Sites)
+
+Sites are stored globally and shared across all users. Each site has a `hasPasskey` boolean field indicating whether it supports Passkey authentication.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/links/search?query=` | Search all sites by keyword **(auth)** |
+| GET | `/api/links/passkey` | Get all passkey-supported sites **(auth)** |
+| GET | `/api/links/no-passkey` | Get all non-passkey sites **(auth)** |
+| POST | `/api/links/crawl` | Crawl a website and save result **(auth)** |
+| GET | `/api/links` | Get all sites (paginated) **(auth)** |
+| GET | `/api/links/:id` | Get a single site by ID **(auth)** |
+| POST | `/api/links` | Manually add a site **(auth)** |
+| PUT | `/api/links/:id` | Update a site **(auth)** |
+| DELETE | `/api/links/:id` | Delete a site **(auth)** |
+
+**Crawl body:**
+```json
+{ "query": "github" }
+```
+
+The crawl endpoint visits the target site using Playwright, detects Passkey/WebAuthn support across the main page and login flow, then saves the result with `hasPasskey: true` or `hasPasskey: false`.
+
+---
+
+### Search History
+
+Each user's history is stored separately and only accessible by that user.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/search/history` | Get current user's search history **(auth)** |
+| POST | `/api/search/history` | Save a search query **(auth)** |
+| DELETE | `/api/search/history/:id` | Delete one history entry **(auth)** |
+| DELETE | `/api/search/history` | Clear all history **(auth)** |
+
+---
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Check if the server is running |
+
+---
+
+## How the Crawler Works
+
+The crawler (`services/crawler.js`) uses **Playwright** (Chromium) to:
+
+1. Visit the target site's main page
+2. Look for Passkey/WebAuthn JavaScript APIs, keywords, and UI elements
+3. Navigate to the login page if needed
+4. Enter a test email to trigger the authentication flow
+5. Monitor network requests for FIDO2/WebAuthn endpoints
+
+If Passkey support is detected → saved with `hasPasskey: true`  
+If not detected → saved with `hasPasskey: false`
+
+Both results are stored in the shared `Link` collection.
+
+---
+
+## Authentication Flow
+
+After login, the client receives a JWT token valid for **7 days**. Include it in every request:
 
 ```
 Authorization: Bearer <your-token>
 ```
 
-## Security Features
+The `auth` middleware decodes the token and attaches `req.userId` to the request, which is used to scope search history to the current user.
 
-- Password hashing with bcrypt
-- JWT token-based authentication
-- Token expiration (7 days)
-- CORS enabled for frontend communication
-- Environment variables for sensitive data
+---
 
-## Development
+## Data Models
 
-Make sure both backend and frontend are running:
+### Link
+```js
+{
+  title: String,
+  url: String,
+  description: String,
+  category: String,        // "Passkey-Enabled" or "No-Passkey"
+  hasPasskey: Boolean,     // true = supports Passkey, false = does not
+  createdAt: Date,
+  updatedAt: Date
+}
+```
 
-1. Backend: `http://localhost:5000` (this server)
-2. Frontend: `http://localhost:5173` (React app)
+### SearchHistory
+```js
+{
+  userId: ObjectId,        // references User — scoped per user
+  query: String,
+  timestamp: Date
+}
+```
 
-The frontend will make API calls to the backend server.
+### User
+```js
+{
+  username: String,
+  password: String,        // bcrypt hashed
+  createdAt: Date
+}
+```

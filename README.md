@@ -2,6 +2,10 @@
 
 A web application that helps you discover which websites support **Passkey (WebAuthn)** authentication — and which ones don't.
 
+> For technical details, see the individual docs:
+> - [Frontend README](./frontend/README.md) — React app structure, pages, and services
+> - [Backend README](./backend/README.md) — API endpoints, crawler, and data models
+
 ---
 
 ## What is this?
