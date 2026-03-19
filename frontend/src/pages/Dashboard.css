@@ -41,7 +41,7 @@
   font-weight: 500;
 }
 
-.settings-button, .logout-button {
+.settings-button, .logout-button, .nav-button {
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
@@ -49,6 +49,26 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.passkey-nav-button {
+  background: rgba(102, 126, 234, 0.12);
+  color: #667eea;
+}
+
+.passkey-nav-button:hover {
+  background: rgba(102, 126, 234, 0.22);
+  transform: translateY(-2px);
+}
+
+.no-passkey-nav-button {
+  background: rgba(255, 107, 107, 0.12);
+  color: #e53935;
+}
+
+.no-passkey-nav-button:hover {
+  background: rgba(255, 107, 107, 0.22);
+  transform: translateY(-2px);
 }
 
 .settings-button {
@@ -232,10 +252,45 @@
   transition: all 0.2s ease;
 }
 
+.result-item--passkey {
+  border-left-color: #667eea;
+  background: #f5f7ff;
+}
+
+.result-item--no-passkey {
+  border-left-color: #ff6b6b;
+  background: #fff5f5;
+}
+
 .result-item:hover {
-  background: #f0f1f3;
   transform: translateX(5px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.result-item--passkey:hover {
+  background: #edf0ff;
+}
+
+.result-item--no-passkey:hover {
+  background: #ffe8e8;
+}
+
+.result-passkey-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge--passkey {
+  background: rgba(102, 126, 234, 0.12);
+  color: #667eea;
+}
+
+.badge--no-passkey {
+  background: rgba(255, 107, 107, 0.12);
+  color: #e53935;
 }
 
 .result-header {
@@ -254,14 +309,26 @@
 }
 
 .result-title a {
-  color: #667eea;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
-.result-title a:hover {
+.result-item--passkey .result-title a {
+  color: #667eea;
+}
+
+.result-item--passkey .result-title a:hover {
   color: #764ba2;
+  text-decoration: underline;
+}
+
+.result-item--no-passkey .result-title a {
+  color: #e53935;
+}
+
+.result-item--no-passkey .result-title a:hover {
+  color: #c62828;
   text-decoration: underline;
 }
 

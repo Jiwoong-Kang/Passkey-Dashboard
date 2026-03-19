@@ -56,6 +56,7 @@ router.post('/crawl', authMiddleware, async (req, res) => {
 
     // Save crawled results to database
     const savedLinks = [];
+    let newLinksCount = 0;
     for (const result of crawledResults) {
       // Check if link already exists
       const existingLink = await Link.findOne({ url: result.url });
@@ -66,11 +67,13 @@ router.post('/crawl', authMiddleware, async (req, res) => {
           url: result.url,
           description: result.description || '',
           category: result.category || 'Web Result',
-          tags: result.tags || [query.toLowerCase()]
+          tags: [],
+          hasPasskey: result.hasPasskey !== undefined ? result.hasPasskey : true
         });
         
         await link.save();
         savedLinks.push(link);
+        newLinksCount++;
       } else {
         savedLinks.push(existingLink);
       }
@@ -80,13 +83,35 @@ router.post('/crawl', authMiddleware, async (req, res) => {
 
     res.json({
       message: 'Successfully crawled and saved results',
-      links: savedLinks,
+      links: savedLinks.filter(l => l.hasPasskey),
       crawled: true,
-      newLinksAdded: savedLinks.length
+      newLinksAdded: newLinksCount
     });
   } catch (error) {
     console.error('Crawl error:', error);
     res.status(500).json({ message: 'Failed to crawl web' });
+  }
+});
+
+// Get all passkey-enabled sites (public dashboard)
+router.get('/passkey', authMiddleware, async (req, res) => {
+  try {
+    const links = await Link.find({ hasPasskey: true }).sort({ createdAt: -1 });
+    res.json({ links, total: links.length });
+  } catch (error) {
+    console.error('Get passkey links error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all non-passkey sites (public dashboard)
+router.get('/no-passkey', authMiddleware, async (req, res) => {
+  try {
+    const links = await Link.find({ hasPasskey: false }).sort({ createdAt: -1 });
+    res.json({ links, total: links.length });
+  } catch (error) {
+    console.error('Get no-passkey links error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

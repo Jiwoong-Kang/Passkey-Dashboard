@@ -30,11 +30,21 @@ export const crawlWeb = async (query) => {
           url: site.url,
           description: result.description || `Supports Passkey/WebAuthn authentication. ${result.detectionMethod}`,
           category: 'Passkey-Enabled',
-          tags: ['passkey', 'webauthn', 'fido2', 'passwordless', query.toLowerCase()]
+          tags: [],
+          hasPasskey: true
         });
         
         console.log(`[Crawler] ✓ Found passkey support at ${site.url}`);
       } else {
+        verifiedSites.push({
+          title: site.title || 'Site',
+          url: site.url,
+          description: `No Passkey/WebAuthn support detected.`,
+          category: 'No-Passkey',
+          tags: [],
+          hasPasskey: false
+        });
+        
         console.log(`[Crawler] ✗ No passkey support at ${site.url}`);
       }
     }

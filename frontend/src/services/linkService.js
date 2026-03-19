@@ -13,6 +13,18 @@ const linkService = {
     return response.data;
   },
 
+  // Get passkey-enabled sites (public dashboard)
+  getPasskeySites: async () => {
+    const response = await api.get('/links/passkey');
+    return response.data;
+  },
+
+  // Get non-passkey sites (public dashboard)
+  getNoPasskeySites: async () => {
+    const response = await api.get('/links/no-passkey');
+    return response.data;
+  },
+
   // Get all links
   getAllLinks: async (page = 1, limit = 50) => {
     const response = await api.get('/links', { params: { page, limit } });

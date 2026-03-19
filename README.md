@@ -1,176 +1,49 @@
 # Passkey Dashboard
 
-A modern dashboard application with user authentication, search functionality, and search history tracking.
+A web application that helps you discover which websites support **Passkey (WebAuthn)** authentication — and which ones don't.
 
-## Features
+---
 
-- 🔐 **User Authentication**: Sign up and login with JWT tokens
-- 🔍 **Search Function**: Search database and web crawling
-- 🌐 **Web Crawling**: Automatically crawl web when no results found
-- 📝 **Search History**: View, manage, and delete search records
-- 🔗 **Link Management**: Store and organize links
-- ⚙️ **User Settings**: Update profile and preferences
-- 💾 **MongoDB Backend**: Persistent data storage
+## What is this?
 
-## Tech Stack
+Passkey Dashboard lets you search for any website and automatically check whether it supports passwordless login via Passkey. Results are shared across all users, building a growing community-powered list of passkey-supported and non-passkey sites.
 
-### Frontend
-- React 18
-- Vite
-- React Router
-- Axios
-- CSS3
+---
 
-### Backend
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JWT Authentication
-- Bcrypt for password hashing
+## How to Use
 
-## Project Structure
+### 1. Create an Account
+Open the app in your browser and click **Sign Up** to create a personal account. Each account has its own search history.
 
-```
-Passkey-Dashboard/
-├── frontend/           # React frontend application
-│   ├── src/
-│   │   ├── pages/     # Page components
-│   │   ├── services/  # API services
-│   │   └── ...
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/            # Express.js backend server
-│   ├── config/        # Database configuration
-│   ├── middleware/    # Authentication middleware
-│   ├── models/        # MongoDB models
-│   ├── routes/        # API routes
-│   ├── server.js
-│   ├── package.json
-│   └── .env           # Environment variables (you need to create)
-│
-├── SETUP.md           # Detailed setup instructions
-└── README.md          # This file
-```
+### 2. Search for a Website
+On the main dashboard, type the name or URL of a website you're curious about (e.g. `google`, `github`, `naver.com`) and click **Search**.
 
-## Quick Start
+- If the site has already been discovered by anyone before, it will show up instantly from the database.
+- Results are color-coded:
+  - **Blue** — the site supports Passkey
+  - **Red** — the site does not support Passkey
 
-### Prerequisites
+### 3. Search the Web (Crawling)
+If no results are found in the database, a **"Search the Web"** button will appear. Clicking it will automatically visit the website, analyze it for Passkey/WebAuthn support, and save the result to the shared database for everyone.
 
-- Node.js (v16 or higher)
-- MongoDB account (MongoDB Atlas recommended) or local MongoDB
-- npm or yarn
+### 4. View Public Dashboards
+At the top of the dashboard, you'll find two shared boards that anyone can view:
 
-### Installation
+- **🔑 Passkey Sites** — all websites confirmed to support Passkey
+- **🔒 No Passkey Sites** — all websites confirmed to not support Passkey
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd Passkey-Dashboard
-   ```
+These dashboards are updated every time any user runs a web search. You can also filter sites by name or URL directly on each board.
 
-2. **Setup Backend**
-   ```bash
-   cd backend
-   npm install
-   
-   # Create .env file with your MongoDB URI and JWT secret
-   # See backend/ENV_TEMPLATE.txt for the template
-   ```
+### 5. Your Search History
+Every search you run is saved to your personal history on the main dashboard. You can delete individual entries or clear everything at once.
 
-3. **Setup Frontend**
-   ```bash
-   cd ../frontend
-   npm install
-   ```
+### 6. Settings
+Click the **Settings** button in the header to update your username or account details.
 
-### Running the Application
+---
 
-You need to run both servers:
+## Key Points
 
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm run dev
-```
-Backend runs on: http://localhost:5000
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-Frontend runs on: http://localhost:5173
-
-### Configuration
-
-Create a `.env` file in the `backend` folder:
-
-```env
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_random_secret_key
-PORT=5000
-NODE_ENV=development
-```
-
-See `SETUP.md` for detailed setup instructions.
-
-## Usage
-
-1. **Add Links to Database** (see `backend/HOW_TO_ADD_LINKS.md`)
-   - Use MongoDB Atlas web interface, OR
-   - Use MongoDB Compass, OR
-   - Use the API endpoint
-
-2. **Configure Web Crawler** (optional - see `backend/CRAWLER_GUIDE.md`)
-   - Replace placeholder code in `backend/services/crawler.js`
-   - Choose your crawling method (Puppeteer, Cheerio, APIs, etc.)
-   - Install required packages
-
-3. **Use the Application**
-   - Open http://localhost:5173 in your browser
-   - Click "Sign Up" to create a new account
-   - Login with your credentials
-   - Search for links using keywords
-   - If no results found → Click "Search the Web" button
-   - Web crawler will find and save results automatically
-   - View search results and history
-   - Access settings to update your profile
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/signup` - Create new account
-- `POST /api/auth/login` - Login and get JWT token
-
-### User
-- `GET /api/user/profile` - Get user profile
-- `PUT /api/user/profile` - Update profile
-
-### Search
-- `GET /api/search/history` - Get search history
-- `POST /api/search/history` - Add search
-- `DELETE /api/search/history/:id` - Delete specific search
-- `DELETE /api/search/history` - Clear all history
-
-## Development
-
-- Frontend uses Vite for fast development and hot module replacement
-- Backend uses nodemon for auto-restart on file changes
-- CORS is enabled for local development
-
-## Security
-
-- Passwords are hashed using bcrypt
-- JWT tokens for authentication
-- Environment variables for sensitive data
-- Token expiration set to 7 days
-
-## License
-
-MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Searches are saved **per user** — your history is only visible to you.
+- Crawled site results are **shared across all users** — once someone finds a site, everyone benefits.
+- The app automatically detects Passkey support by visiting the site's login flow, so no manual input is needed.

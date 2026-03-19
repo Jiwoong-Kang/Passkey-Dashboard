@@ -25,6 +25,10 @@ const linkSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  hasPasskey: {
+    type: Boolean,
+    default: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

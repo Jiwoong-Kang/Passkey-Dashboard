@@ -144,6 +144,12 @@ function Dashboard() {
           <h1>Dashboard</h1>
           <div className="header-actions">
             <span className="username">Welcome, {username}</span>
+            <button onClick={() => navigate('/passkey-sites')} className="nav-button passkey-nav-button">
+              🔑 Passkey Sites
+            </button>
+            <button onClick={() => navigate('/no-passkey-sites')} className="nav-button no-passkey-nav-button">
+              🔒 No Passkey Sites
+            </button>
             <button onClick={() => navigate('/settings')} className="settings-button">
               ⚙️ Settings
             </button>
@@ -200,16 +206,19 @@ function Dashboard() {
             ) : (
               <div className="results-list">
                 {searchResults.map((link) => (
-                  <div key={link._id} className="result-item">
+                  <div
+                    key={link._id}
+                    className={`result-item ${link.hasPasskey === false ? 'result-item--no-passkey' : 'result-item--passkey'}`}
+                  >
                     <div className="result-header">
                       <h3 className="result-title">
                         <a href={link.url} target="_blank" rel="noopener noreferrer">
                           {link.title}
                         </a>
                       </h3>
-                      {link.category && (
-                        <span className="result-category">{link.category}</span>
-                      )}
+                      <span className={`result-passkey-badge ${link.hasPasskey === false ? 'badge--no-passkey' : 'badge--passkey'}`}>
+                        {link.hasPasskey === false ? '🔒 No Passkey' : '🔑 Passkey'}
+                      </span>
                     </div>
                     {link.description && (
                       <p className="result-description">{link.description}</p>
@@ -218,13 +227,6 @@ function Dashboard() {
                       <a href={link.url} target="_blank" rel="noopener noreferrer" className="result-url">
                         🔗 {link.url}
                       </a>
-                      {link.tags && link.tags.length > 0 && (
-                        <div className="result-tags">
-                          {link.tags.map((tag, index) => (
-                            <span key={index} className="result-tag">{tag}</span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}

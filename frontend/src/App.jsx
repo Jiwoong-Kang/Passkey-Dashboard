@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import PasskeyDashboard from './pages/PasskeyDashboard';
+import NoPasskeyDashboard from './pages/NoPasskeyDashboard';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,6 +45,18 @@ function App() {
           path="/settings" 
           element={
             isLoggedIn ? <Settings /> : <Navigate to="/" replace />
+          } 
+        />
+        <Route 
+          path="/passkey-sites" 
+          element={
+            isLoggedIn ? <PasskeyDashboard /> : <Navigate to="/" replace />
+          } 
+        />
+        <Route 
+          path="/no-passkey-sites" 
+          element={
+            isLoggedIn ? <NoPasskeyDashboard /> : <Navigate to="/" replace />
           } 
         />
         <Route path="*" element={<Navigate to="/" replace />} />
