@@ -58,7 +58,7 @@ backend/
 │   └── auth.js            # JWT verification middleware
 ├── models/
 │   ├── User.js            # User account model
-│   ├── Link.js            # Discovered site model (hasPasskey field)
+│   ├── Link.js            # Discovered site model (hasPasskey + passkeyType)
 │   └── SearchHistory.js   # Per-user search history model
 ├── routes/
 │   ├── auth.js            # Signup / Login
@@ -66,7 +66,8 @@ backend/
 │   ├── links.js           # Site search, crawling, public dashboards
 │   └── search.js          # Search history
 ├── services/
-│   └── crawler.js         # Playwright-based Passkey detection crawler
+│   ├── crawler.js         # Main Playwright-based Passkey detection orchestrator
+│   └── crawler/           # Modular crawler helpers (detectors, frames, navigation)
 ├── .env                   # Environment variables (you must create this)
 ├── package.json
 └── server.js              # App entry point
@@ -108,12 +109,17 @@ All endpoints marked **(auth)** require a `Bearer` token in the `Authorization` 
 
 ### Links (Sites)
 
-Sites are stored globally and shared across all users. Each site has a `hasPasskey` boolean field indicating whether it supports Passkey authentication.
+Sites are stored globally and shared across all users. Each site keeps both a legacy `hasPasskey` boolean and a richer `passkeyType` classification:
+
+- `native` — passkey signal detected on the same site / same-brand domain
+- `third-party` — passkey signal detected on an external IdP or auth domain
+- `none` — no passkey support detected
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/links/search?query=` | Search all sites by keyword **(auth)** |
-| GET | `/api/links/passkey` | Get all passkey-supported sites **(auth)** |
+| GET | `/api/links/passkey` | Get all native-passkey sites **(auth)** |
+| GET | `/api/links/third-party` | Get all third-party-passkey sites **(auth)** |
 | GET | `/api/links/no-passkey` | Get all non-passkey sites **(auth)** |
 | POST | `/api/links/crawl` | Crawl a website and save result **(auth)** |
 | GET | `/api/links` | Get all sites (paginated) **(auth)** |
@@ -127,7 +133,7 @@ Sites are stored globally and shared across all users. Each site has a `hasPassk
 { "query": "github" }
 ```
 
-The crawl endpoint visits the target site using Playwright, detects Passkey/WebAuthn support across the main page and login flow, then saves the result with `hasPasskey: true` or `hasPasskey: false`.
+The crawl endpoint visits the target site using Playwright, detects Passkey/WebAuthn support across the main page and login flow, then saves the result with both `hasPasskey` and `passkeyType`.
 
 ---
 
@@ -157,15 +163,22 @@ Each user's history is stored separately and only accessible by that user.
 The crawler (`services/crawler.js`) uses **Playwright** (Chromium) to:
 
 1. Visit the target site's main page
-2. Look for Passkey/WebAuthn JavaScript APIs, keywords, and UI elements
-3. Navigate to the login page if needed
-4. Enter a test email to trigger the authentication flow
-5. Monitor network requests for FIDO2/WebAuthn endpoints
+2. Ignore broken HTTPS certificates when needed so crawling can continue on misconfigured sites
+3. Look for Passkey/WebAuthn JavaScript APIs, keywords, `autocomplete="webauthn"`, and UI elements
+4. Navigate to the login page if needed
+5. Inspect login-related iframes as well as the main document
+6. Enter a test email to trigger the authentication flow
+7. Intercept runtime `navigator.credentials.get/create` calls
+8. Monitor network requests for FIDO2/WebAuthn endpoints
 
-If Passkey support is detected → saved with `hasPasskey: true`  
-If not detected → saved with `hasPasskey: false`
+If passkey support is detected, the crawler classifies it as:
 
-Both results are stored in the shared `Link` collection.
+- `native` when the signal came from the same site / same-brand domain
+- `third-party` when the signal came from an external login or IdP domain
+
+If no signal is detected, the site is stored as `none`.
+
+All results are stored in the shared `Link` collection.
 
 ---
 
@@ -189,8 +202,9 @@ The `auth` middleware decodes the token and attaches `req.userId` to the request
   title: String,
   url: String,
   description: String,
-  category: String,        // "Passkey-Enabled" or "No-Passkey"
-  hasPasskey: Boolean,     // true = supports Passkey, false = does not
+  category: String,        // "Native Passkey", "Third-Party Passkey", or "No-Passkey"
+  hasPasskey: Boolean,     // legacy flag: true = passkey detected, false = none detected
+  passkeyType: String,     // "native" | "third-party" | "none"
   createdAt: Date,
   updatedAt: Date
 }

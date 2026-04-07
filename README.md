@@ -1,6 +1,6 @@
 # Passkey Dashboard
 
-A web application that helps you discover which websites support **Passkey (WebAuthn)** authentication — and which ones don't.
+A web application that helps you discover which websites support **Passkey (WebAuthn)** authentication natively, through a third-party identity provider, or not at all.
 
 > For technical details, see the individual docs:
 > - [Frontend README](./frontend/README.md) — React app structure, pages, and services
@@ -10,7 +10,7 @@ A web application that helps you discover which websites support **Passkey (WebA
 
 ## What is this?
 
-Passkey Dashboard lets you search for any website and automatically check whether it supports passwordless login via Passkey. Results are shared across all users, building a growing community-powered list of passkey-supported and non-passkey sites.
+Passkey Dashboard lets you search for any website and automatically check whether it supports passwordless login via Passkey. Results are shared across all users, building a growing community-powered list of native passkey sites, third-party passkey sites, and sites with no detected passkey support.
 
 ---
 
@@ -24,17 +24,19 @@ On the main dashboard, type the name or URL of a website you're curious about (e
 
 - If the site has already been discovered by anyone before, it will show up instantly from the database.
 - Results are color-coded:
-  - **Blue** — the site supports Passkey
-  - **Red** — the site does not support Passkey
+  - **Blue** — the site exposes **native passkey** support
+  - **Amber** — the site exposes **third-party passkey** support
+  - **Red** — no passkey support was detected
 
 ### 3. Search the Web (Crawling)
 If no results are found in the database, a **"Search the Web"** button will appear. Clicking it will automatically visit the website, analyze it for Passkey/WebAuthn support, and save the result to the shared database for everyone.
 
 ### 4. View Public Dashboards
-At the top of the dashboard, you'll find two shared boards that anyone can view:
+At the top of the dashboard, you'll find three shared boards that anyone can view:
 
-- **🔑 Passkey Sites** — all websites confirmed to support Passkey
-- **🔒 No Passkey Sites** — all websites confirmed to not support Passkey
+- **🔑 Native Passkey** — passkey detected on the same site or same-brand auth domain
+- **🔗 3rd Party Passkey** — passkey detected on an external IdP or auth domain
+- **🔒 No Passkey** — no passkey support detected
 
 These dashboards are updated every time any user runs a web search. You can also filter sites by name or URL directly on each board.
 
@@ -51,3 +53,4 @@ Click the **Settings** button in the header to update your username or account d
 - Searches are saved **per user** — your history is only visible to you.
 - Crawled site results are **shared across all users** — once someone finds a site, everyone benefits.
 - The app automatically detects Passkey support by visiting the site's login flow, so no manual input is needed.
+- Detection is stored with a `passkeyType` classification: `native`, `third-party`, or `none`.
