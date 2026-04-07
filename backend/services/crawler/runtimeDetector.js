@@ -1,12 +1,17 @@
+import { getLoginFrames } from './frameUtils.js';
+
 /**
  * Runtime detector — intercepts actual navigator.credentials.get / .create calls.
  * This is the "2nd pass" check: reliable even for bundled/minified code, because
  * we hook the API before the page's own scripts run via addInitScript().
+ *
+ * The interceptor is injected at the context level, so it runs in ALL frames
+ * (including iframes), and each frame's window gets its own __webauthnCalled flag.
  */
 
 /**
  * Must be called once on the BrowserContext before any page navigation.
- * Wraps navigator.credentials so that any real WebAuthn call sets a flag we can read later.
+ * Wraps navigator.credentials in every frame so any real WebAuthn call sets a flag.
  *
  * @param {import('playwright').BrowserContext} context
  */
@@ -37,23 +42,49 @@ export async function injectWebAuthnInterceptor(context) {
 
 /**
  * Reads the flag set by the interceptor to check whether a WebAuthn call happened.
+ * Checks the main page first, then falls back to login-related iframes.
  *
  * @param {import('playwright').Page} page
- * @returns {Promise<{called: boolean, method: string|null, options: string|null}>}
+ * @returns {Promise<{called: boolean, method: string|null, options: string|null, source: string}>}
  */
 export async function checkRuntimeWebAuthnCall(page) {
+  // --- Check main page window ---
+  const mainResult = await readWebAuthnFlag(page.mainFrame());
+  if (mainResult.called) {
+    console.log(`[RuntimeDetector] ✓ navigator.credentials.${mainResult.method}() called on main page`);
+    return { ...mainResult, source: 'main page' };
+  }
+
+  // --- Fallback: check login-related iframes ---
+  const loginFrames = await getLoginFrames(page);
+  for (const frame of loginFrames) {
+    try {
+      const frameResult = await readWebAuthnFlag(frame);
+      if (frameResult.called) {
+        console.log(`[RuntimeDetector] ✓ navigator.credentials.${frameResult.method}() called in login iframe: ${frame.url()}`);
+        return { ...frameResult, source: `login iframe: ${frame.url()}` };
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+
+  return { called: false, method: null, options: null, source: null };
+}
+
+/**
+ * Reads __webauthnCalled from a specific frame's window.
+ *
+ * @param {import('playwright').Frame} frame
+ * @returns {Promise<{called: boolean, method: string|null, options: string|null}>}
+ */
+async function readWebAuthnFlag(frame) {
   try {
-    const result = await page.evaluate(() => ({
+    return await frame.evaluate(() => ({
       called:  !!window.__webauthnCalled,
       method:  window.__webauthnMethod  ?? null,
       options: window.__webauthnOptions ?? null,
     }));
-
-    if (result.called) {
-      console.log(`[RuntimeDetector] ✓ navigator.credentials.${result.method}() was called`);
-    }
-
-    return result;
   } catch (_) {
     return { called: false, method: null, options: null };
   }
