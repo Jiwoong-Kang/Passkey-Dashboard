@@ -29,6 +29,11 @@ const linkSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  passkeyType: {
+    type: String,
+    enum: ['native', 'third-party', 'none'],
+    default: 'native'
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -36,6 +41,10 @@ const linkSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  lastCrawledAt: {
+    type: Date,
+    default: null
   }
 });
 

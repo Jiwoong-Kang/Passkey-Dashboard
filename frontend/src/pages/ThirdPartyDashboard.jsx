@@ -8,7 +8,7 @@ import './PublicDashboard.css';
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-function PasskeyDashboard() {
+function ThirdPartyDashboard() {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,10 +28,10 @@ function PasskeyDashboard() {
   const loadLinks = async () => {
     setLoading(true);
     try {
-      const data = await linkService.getPasskeySites();
+      const data = await linkService.getThirdPartyPasskeySites();
       setLinks(data.links || []);
     } catch (error) {
-      console.error('Failed to load passkey sites:', error);
+      console.error('Failed to load third-party passkey sites:', error);
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ function PasskeyDashboard() {
     const stale = isStale(link);
     const crawlDate = link.lastCrawledAt || link.updatedAt;
     return (
-      <div key={link._id} className="site-card passkey-card">
+      <div key={link._id} className="site-card third-party-card">
         <div className="card-header">
           <div className="site-favicon">
             <img
@@ -112,7 +112,7 @@ function PasskeyDashboard() {
                 {link.title}
               </a>
             </h3>
-            <span className="passkey-supported-badge">Passkey Supported</span>
+            <span className="third-party-supported-badge">3rd Party Passkey</span>
           </div>
           {stale && <span className="stale-badge">⚠️ Outdated</span>}
         </div>
@@ -124,7 +124,7 @@ function PasskeyDashboard() {
             <span className="crawl-date">🕒 {formatDate(crawlDate)}</span>
             {stale && (
               <button
-                className="recrawl-btn"
+                className="recrawl-btn recrawl-btn--third-party"
                 onClick={() => handleRecrawl(link._id)}
                 disabled={recrawlingId === link._id}
               >
@@ -144,7 +144,7 @@ function PasskeyDashboard() {
     const stale = isStale(link);
     const crawlDate = link.lastCrawledAt || link.updatedAt;
     return (
-      <div key={link._id} className="site-list-item passkey-list-item">
+      <div key={link._id} className="site-list-item third-party-list-item">
         <div className="list-favicon">
           <img
             src={`https://www.google.com/s2/favicons?domain=${link.url}&sz=16`}
@@ -159,7 +159,7 @@ function PasskeyDashboard() {
           {link.url}
         </a>
         <div className="list-meta">
-          <span className="passkey-supported-badge">Passkey</span>
+          <span className="third-party-supported-badge">3rd Party</span>
           {stale && <span className="stale-badge-sm">⚠️ Outdated</span>}
           <span className="list-crawl-date">{formatDate(crawlDate)}</span>
           {stale && (
@@ -178,7 +178,7 @@ function PasskeyDashboard() {
   };
 
   return (
-    <div className="public-dashboard-container passkey-theme">
+    <div className="public-dashboard-container third-party-theme">
       {ModalComponent}
       <header className="public-dashboard-header">
         <div className="header-content">
@@ -187,22 +187,22 @@ function PasskeyDashboard() {
               ← Back
             </button>
             <div className="header-title">
-              <span className="header-badge passkey-badge">Passkey</span>
-              <h1>Passkey-Supported Sites</h1>
+              <span className="header-badge third-party-badge">3rd Party</span>
+              <h1>Third-Party Passkey Sites</h1>
             </div>
           </div>
           <div className="header-right">
             <span className="site-count">{links.length} sites</span>
             <div className="view-toggle">
               <button
-                className={`view-btn ${viewMode === 'card' ? 'view-btn--active' : ''}`}
+                className={`view-btn ${viewMode === 'card' ? 'view-btn--active view-btn--third-party' : ''}`}
                 onClick={() => handleViewMode('card')}
                 title="Card view"
               >
                 ⊞
               </button>
               <button
-                className={`view-btn ${viewMode === 'list' ? 'view-btn--active' : ''}`}
+                className={`view-btn ${viewMode === 'list' ? 'view-btn--active view-btn--third-party' : ''}`}
                 onClick={() => handleViewMode('list')}
                 title="List view"
               >
@@ -214,8 +214,8 @@ function PasskeyDashboard() {
       </header>
 
       <main className="public-dashboard-main">
-        <div className="dashboard-intro passkey-intro">
-          <p>Sites that support Passkey / WebAuthn passwordless authentication</p>
+        <div className="dashboard-intro third-party-intro">
+          <p>Sites that support Passkey login via an external Identity Provider (e.g. Sign in with Apple, Google, etc.)</p>
         </div>
 
         <div className="filter-bar">
@@ -235,7 +235,7 @@ function PasskeyDashboard() {
               return (
                 <button
                   key={letter}
-                  className={`alpha-btn ${active ? 'alpha-btn--active passkey-alpha' : 'alpha-btn--inactive'}`}
+                  className={`alpha-btn ${active ? 'alpha-btn--active third-party-alpha' : 'alpha-btn--inactive'}`}
                   onClick={() => active && scrollToLetter(letter)}
                   disabled={!active}
                 >
@@ -245,7 +245,7 @@ function PasskeyDashboard() {
             })}
             {groupedLinks['#'] && (
               <button
-                className="alpha-btn alpha-btn--active passkey-alpha"
+                className="alpha-btn alpha-btn--active third-party-alpha"
                 onClick={() => scrollToLetter('#')}
               >
                 #
@@ -256,7 +256,7 @@ function PasskeyDashboard() {
 
         {loading ? (
           <div className="loading-state">
-            <div className="spinner"></div>
+            <div className="spinner third-party-spinner"></div>
             <p>Loading...</p>
           </div>
         ) : filteredLinks.length === 0 ? (
@@ -271,8 +271,8 @@ function PasskeyDashboard() {
               </>
             ) : (
               <>
-                <div className="empty-icon">🔑</div>
-                <p>No passkey-supported sites yet.</p>
+                <div className="empty-icon">🔗</div>
+                <p>No third-party passkey sites yet.</p>
                 <p className="empty-sub">Search the web from the dashboard to discover sites!</p>
                 <button onClick={() => navigate('/dashboard')} className="go-dashboard-button">
                   Go to Dashboard
@@ -284,7 +284,7 @@ function PasskeyDashboard() {
           <div className="sections-container">
             {availableLetters.map(letter => (
               <div key={letter} id={`section-${letter}`} className="alpha-section">
-                <div className="alpha-section-header passkey-section-header">{letter}</div>
+                <div className="alpha-section-header third-party-section-header">{letter}</div>
                 {viewMode === 'card' ? (
                   <div className="sites-grid">
                     {groupedLinks[letter].map(link => renderCard(link))}
@@ -303,4 +303,4 @@ function PasskeyDashboard() {
   );
 }
 
-export default PasskeyDashboard;
+export default ThirdPartyDashboard;

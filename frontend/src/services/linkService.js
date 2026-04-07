@@ -19,7 +19,13 @@ const linkService = {
     return response.data;
   },
 
-  // Get non-passkey sites (public dashboard)
+  // Get third-party passkey sites
+  getThirdPartyPasskeySites: async () => {
+    const response = await api.get('/links/third-party');
+    return response.data;
+  },
+
+  // Get no-passkey sites (public dashboard)
   getNoPasskeySites: async () => {
     const response = await api.get('/links/no-passkey');
     return response.data;
@@ -46,6 +52,12 @@ const linkService = {
   // Update link
   updateLink: async (id, linkData) => {
     const response = await api.put(`/links/${id}`, linkData);
+    return response.data;
+  },
+
+  // Re-crawl a specific link
+  recrawlLink: async (id) => {
+    const response = await api.post(`/links/${id}/recrawl`);
     return response.data;
   },
 

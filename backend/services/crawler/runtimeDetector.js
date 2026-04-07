@@ -52,7 +52,7 @@ export async function checkRuntimeWebAuthnCall(page) {
   const mainResult = await readWebAuthnFlag(page.mainFrame());
   if (mainResult.called) {
     console.log(`[RuntimeDetector] ✓ navigator.credentials.${mainResult.method}() called on main page`);
-    return { ...mainResult, source: 'main page' };
+    return { ...mainResult, source: 'main page', signalSourceUrl: page.url() };
   }
 
   // --- Fallback: check login-related iframes ---
@@ -62,14 +62,14 @@ export async function checkRuntimeWebAuthnCall(page) {
       const frameResult = await readWebAuthnFlag(frame);
       if (frameResult.called) {
         console.log(`[RuntimeDetector] ✓ navigator.credentials.${frameResult.method}() called in login iframe: ${frame.url()}`);
-        return { ...frameResult, source: `login iframe: ${frame.url()}` };
+        return { ...frameResult, source: `login iframe: ${frame.url()}`, signalSourceUrl: frame.url() };
       }
     } catch (_) {
       continue;
     }
   }
 
-  return { called: false, method: null, options: null, source: null };
+  return { called: false, method: null, options: null, source: null, signalSourceUrl: null };
 }
 
 /**

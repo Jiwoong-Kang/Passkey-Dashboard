@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import searchService from '../services/searchService';
+import { useModal } from '../hooks/useModal';
 import './Settings.css';
 
 function Settings() {
   const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showAlert, showConfirm, ModalComponent } = useModal();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,10 +44,10 @@ function Settings() {
       try {
         await userService.updateProfile({ username: newUsername });
         setUsername(newUsername);
-        alert('Name has been updated!');
+        await showAlert('Name has been updated!', 'success');
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to update name.';
-        alert(message);
+        await showAlert(message, 'error');
       } finally {
         setLoading(false);
       }
@@ -53,12 +55,16 @@ function Settings() {
   };
 
   const handleClearHistory = async () => {
-    if (window.confirm('Are you sure you want to delete all search history?')) {
+    const confirmed = await showConfirm('Are you sure you want to delete all search history?', {
+      danger: true,
+      confirmLabel: 'Delete All',
+    });
+    if (confirmed) {
       try {
         await searchService.clearAllHistory();
-        alert('Search history has been deleted.');
+        await showAlert('Search history has been deleted.', 'success');
       } catch (error) {
-        alert('Failed to clear history. Please try again.');
+        await showAlert('Failed to clear history. Please try again.', 'error');
       }
     }
   };
@@ -74,6 +80,7 @@ function Settings() {
 
   return (
     <div className="settings-container">
+      {ModalComponent}
       <header className="settings-header">
         <div className="header-content">
           <h1>⚙️ Settings</h1>

@@ -19,7 +19,7 @@ export async function checkForPasskeyOnPage(page) {
     const mainResult = await inspectFrame(page.mainFrame());
     if (mainResult.found) {
       console.log(`[StaticDetector] Main page: ${mainResult.log}`);
-      return { found: true, method: mainResult.method };
+      return { found: true, method: mainResult.method, signalSourceUrl: page.url() };
     }
 
     // --- Fallback: check login-related iframes ---
@@ -29,14 +29,14 @@ export async function checkForPasskeyOnPage(page) {
         const frameResult = await inspectFrame(frame);
         if (frameResult.found) {
           console.log(`[StaticDetector] Login iframe (${frame.url()}): ${frameResult.log}`);
-          return { found: true, method: `${frameResult.method} [in login iframe]` };
+          return { found: true, method: `${frameResult.method} [in login iframe]`, signalSourceUrl: frame.url() };
         }
       } catch (_) {
         continue;
       }
     }
 
-    return { found: false, method: null };
+    return { found: false, method: null, signalSourceUrl: null };
 
   } catch (error) {
     console.error('[StaticDetector] Error:', error.message);

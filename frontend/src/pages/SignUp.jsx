@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import { useModal } from '../hooks/useModal';
 import './SignUp.css';
 
 function SignUp() {
@@ -8,23 +9,24 @@ function SignUp() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showAlert, ModalComponent } = useModal();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!username || !password || !confirmPassword) {
-      alert('Please fill in all fields.');
+      await showAlert('Please fill in all fields.', 'warning');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match.');
+      await showAlert('Passwords do not match.', 'error');
       return;
     }
 
     if (password.length < 6) {
-      alert('Password must be at least 6 characters long.');
+      await showAlert('Password must be at least 6 characters long.', 'warning');
       return;
     }
 
@@ -32,11 +34,11 @@ function SignUp() {
 
     try {
       await authService.signup(username, password);
-      alert('Account created successfully! Please login.');
+      await showAlert('Account created successfully! Please login.', 'success');
       navigate('/');
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to create account. Please try again.';
-      alert(message);
+      await showAlert(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -44,6 +46,7 @@ function SignUp() {
 
   return (
     <div className="signup-container">
+      {ModalComponent}
       <div className="signup-box">
         <h1>Create Account</h1>
         <p className="signup-subtitle">Sign up to get started</p>

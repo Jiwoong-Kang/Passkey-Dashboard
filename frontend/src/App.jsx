@@ -6,6 +6,7 @@ import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import PasskeyDashboard from './pages/PasskeyDashboard';
+import ThirdPartyDashboard from './pages/ThirdPartyDashboard';
 import NoPasskeyDashboard from './pages/NoPasskeyDashboard';
 
 function App() {
@@ -51,6 +52,12 @@ function App() {
           path="/passkey-sites" 
           element={
             isLoggedIn ? <PasskeyDashboard /> : <Navigate to="/" replace />
+          } 
+        />
+        <Route 
+          path="/third-party-sites" 
+          element={
+            isLoggedIn ? <ThirdPartyDashboard /> : <Navigate to="/" replace />
           } 
         />
         <Route 

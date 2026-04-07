@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import { useModal } from '../hooks/useModal';
 import './Login.css';
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showAlert, ModalComponent } = useModal();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
-      alert('Please enter username and password.');
+      await showAlert('Please enter username and password.', 'warning');
       return;
     }
 
@@ -24,7 +26,7 @@ function Login({ onLogin }) {
       onLogin();
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to login. Please try again.';
-      alert(message);
+      await showAlert(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -32,6 +34,7 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-container">
+      {ModalComponent}
       <div className="login-box">
         <h1>Dashboard</h1>
         <p className="login-subtitle">Login to continue</p>

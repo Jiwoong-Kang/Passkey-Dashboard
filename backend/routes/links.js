@@ -1,7 +1,7 @@
 import express from 'express';
 import Link from '../models/Link.js';
 import authMiddleware from '../middleware/auth.js';
-import { crawlWeb } from '../services/crawler.js';
+import { crawlWeb, detectPasskey } from '../services/crawler.js';
 
 const router = express.Router();
 
@@ -68,13 +68,17 @@ router.post('/crawl', authMiddleware, async (req, res) => {
           description: result.description || '',
           category: result.category || 'Web Result',
           tags: [],
-          hasPasskey: result.hasPasskey !== undefined ? result.hasPasskey : true
+          hasPasskey: result.hasPasskey !== undefined ? result.hasPasskey : true,
+          passkeyType: result.passkeyType || (result.hasPasskey ? 'native' : 'none'),
+          lastCrawledAt: new Date(),
         });
         
         await link.save();
         savedLinks.push(link);
         newLinksCount++;
       } else {
+        existingLink.lastCrawledAt = new Date();
+        await existingLink.save();
         savedLinks.push(existingLink);
       }
     }
@@ -85,7 +89,12 @@ router.post('/crawl', authMiddleware, async (req, res) => {
       message: 'Successfully crawled and saved results',
       links: savedLinks.filter(l => l.hasPasskey),
       crawled: true,
-      newLinksAdded: newLinksCount
+      newLinksAdded: newLinksCount,
+      breakdown: {
+        native: savedLinks.filter(l => l.passkeyType === 'native').length,
+        thirdParty: savedLinks.filter(l => l.passkeyType === 'third-party').length,
+        none: savedLinks.filter(l => l.passkeyType === 'none').length,
+      }
     });
   } catch (error) {
     console.error('Crawl error:', error);
@@ -93,10 +102,10 @@ router.post('/crawl', authMiddleware, async (req, res) => {
   }
 });
 
-// Get all passkey-enabled sites (public dashboard)
+// Get native passkey sites
 router.get('/passkey', authMiddleware, async (req, res) => {
   try {
-    const links = await Link.find({ hasPasskey: true }).sort({ createdAt: -1 });
+    const links = await Link.find({ passkeyType: 'native' }).sort({ createdAt: -1 });
     res.json({ links, total: links.length });
   } catch (error) {
     console.error('Get passkey links error:', error);
@@ -104,10 +113,21 @@ router.get('/passkey', authMiddleware, async (req, res) => {
   }
 });
 
-// Get all non-passkey sites (public dashboard)
+// Get third-party passkey sites
+router.get('/third-party', authMiddleware, async (req, res) => {
+  try {
+    const links = await Link.find({ passkeyType: 'third-party' }).sort({ createdAt: -1 });
+    res.json({ links, total: links.length });
+  } catch (error) {
+    console.error('Get third-party passkey links error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get no-passkey sites
 router.get('/no-passkey', authMiddleware, async (req, res) => {
   try {
-    const links = await Link.find({ hasPasskey: false }).sort({ createdAt: -1 });
+    const links = await Link.find({ passkeyType: 'none' }).sort({ createdAt: -1 });
     res.json({ links, total: links.length });
   } catch (error) {
     console.error('Get no-passkey links error:', error);
@@ -204,6 +224,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Update link error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Re-crawl a specific link
+router.post('/:id/recrawl', authMiddleware, async (req, res) => {
+  try {
+    const link = await Link.findById(req.params.id);
+    if (!link) return res.status(404).json({ message: 'Link not found' });
+
+    const result = await detectPasskey(link.url);
+
+    link.hasPasskey = result.hasPasskey;
+    link.passkeyType = result.passkeyType || 'none';
+    link.lastCrawledAt = new Date();
+    if (result.description) link.description = result.description;
+
+    await link.save();
+    res.json({ link, message: 'Re-crawl complete' });
+  } catch (error) {
+    console.error('Recrawl error:', error);
+    res.status(500).json({ message: 'Re-crawl failed' });
   }
 });
 

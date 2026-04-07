@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import searchService from '../services/searchService';
 import linkService from '../services/linkService';
+import { useModal } from '../hooks/useModal';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -16,31 +17,26 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [crawling, setCrawling] = useState(false);
+  const { showAlert, showConfirm, ModalComponent } = useModal();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check login status
     if (!authService.isLoggedIn()) {
       navigate('/');
       return;
     }
-
-    // Get username
     const user = authService.getCurrentUser();
     setUsername(user?.username || 'User');
-
-    // Load search history
     loadSearchHistory();
   }, [navigate]);
 
   const loadSearchHistory = async () => {
     try {
       const history = await searchService.getHistory();
-      // Format history for display
       const formattedHistory = history.map(item => ({
         id: item._id,
         query: item.query,
-        timestamp: new Date(item.timestamp).toLocaleString('en-US')
+        timestamp: new Date(item.timestamp).toLocaleString('ko-KR')
       }));
       setSearchHistory(formattedHistory);
     } catch (error) {
@@ -50,63 +46,66 @@ function Dashboard() {
     }
   };
 
+  const runSearch = async (query) => {
+    if (!query.trim()) return;
+    setSearching(true);
+    setCurrentSearchQuery(query);
+    setNoResults(false);
+
+    try {
+      const response = await linkService.searchLinks(query);
+      const results = response.links || response;
+
+      if (results.length === 0) {
+        setSearchResults([]);
+        setNoResults(true);
+        setShowResults(true);
+      } else {
+        setSearchResults(results);
+        setNoResults(false);
+        setShowResults(true);
+      }
+
+      const newSearch = await searchService.addSearch(query);
+      const formattedSearch = {
+        id: newSearch._id,
+        query: newSearch.query,
+        timestamp: new Date(newSearch.timestamp).toLocaleString('ko-KR')
+      };
+      setSearchHistory(prev => [formattedSearch, ...prev.filter(h => h.query !== query)]);
+    } catch (error) {
+      await showAlert('Search failed. Please try again.', 'error');
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      setSearching(true);
-      setCurrentSearchQuery(searchQuery);
-      setNoResults(false);
-      
-      try {
-        // Search for links in database
-        const response = await linkService.searchLinks(searchQuery);
-        const results = response.links || response; // Handle both formats
-        
-        if (results.length === 0) {
-          // No results found in database
-          setSearchResults([]);
-          setNoResults(true);
-          setShowResults(true);
-        } else {
-          // Results found
-          setSearchResults(results);
-          setNoResults(false);
-          setShowResults(true);
-        }
+    await runSearch(searchQuery);
+  };
 
-        // Save search to history
-        const newSearch = await searchService.addSearch(searchQuery);
-        const formattedSearch = {
-          id: newSearch._id,
-          query: newSearch.query,
-          timestamp: new Date(newSearch.timestamp).toLocaleString('en-US')
-        };
-        setSearchHistory([formattedSearch, ...searchHistory]);
-      } catch (error) {
-        alert('Failed to search. Please try again.');
-      } finally {
-        setSearching(false);
-      }
-    }
+  const handleHistoryClick = async (query) => {
+    setSearchQuery(query);
+    await runSearch(query);
   };
 
   const handleCrawlWeb = async () => {
     if (!currentSearchQuery) return;
-    
+
     setCrawling(true);
     try {
-      // Crawl the web
       const response = await linkService.crawlWeb(currentSearchQuery);
-      
+
       if (response.links && response.links.length > 0) {
         setSearchResults(response.links);
         setNoResults(false);
-        alert(`Found ${response.newLinksAdded} new links and added them to the database!`);
+        await showAlert(`Found ${response.newLinksAdded} new links and added them to the database!`, 'success');
       } else {
-        alert('No results found on the web either.');
+        await showAlert('No results found on the web either.', 'info');
       }
     } catch (error) {
-      alert('Failed to crawl web. Please try again.');
+      await showAlert('Web search failed. Please try again.', 'error');
     } finally {
       setCrawling(false);
     }
@@ -117,17 +116,21 @@ function Dashboard() {
       await searchService.deleteHistory(id);
       setSearchHistory(searchHistory.filter(item => item.id !== id));
     } catch (error) {
-      alert('Failed to delete history. Please try again.');
+      await showAlert('Failed to delete history. Please try again.', 'error');
     }
   };
 
   const handleClearAllHistory = async () => {
-    if (window.confirm('Are you sure you want to delete all search history?')) {
+    const confirmed = await showConfirm('Are you sure you want to delete all search history?', {
+      danger: true,
+      confirmLabel: 'Delete All',
+    });
+    if (confirmed) {
       try {
         await searchService.clearAllHistory();
         setSearchHistory([]);
       } catch (error) {
-        alert('Failed to clear history. Please try again.');
+        await showAlert('Failed to clear history. Please try again.', 'error');
       }
     }
   };
@@ -139,24 +142,30 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
+      {ModalComponent}
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>Dashboard</h1>
-          <div className="header-actions">
-            <span className="username">Welcome, {username}</span>
-            <button onClick={() => navigate('/passkey-sites')} className="nav-button passkey-nav-button">
-              🔑 Passkey Sites
+          <div className="header-brand">
+            <h1>Dashboard</h1>
+            <span className="header-username">👤 {username}</span>
+          </div>
+          <nav className="header-nav">
+            <button onClick={() => navigate('/passkey-sites')} className="nav-button passkey-nav-button" title="Native Passkey Sites">
+              🔑 Native
             </button>
-            <button onClick={() => navigate('/no-passkey-sites')} className="nav-button no-passkey-nav-button">
-              🔒 No Passkey Sites
+            <button onClick={() => navigate('/third-party-sites')} className="nav-button third-party-nav-button" title="3rd Party Passkey Sites">
+              🔗 3rd Party
             </button>
-            <button onClick={() => navigate('/settings')} className="settings-button">
-              ⚙️ Settings
+            <button onClick={() => navigate('/no-passkey-sites')} className="nav-button no-passkey-nav-button" title="No Passkey Sites">
+              🔒 No Passkey
+            </button>
+            <button onClick={() => navigate('/settings')} className="nav-button settings-button" title="Settings">
+              ⚙️
             </button>
             <button onClick={handleLogout} className="logout-button">
               Logout
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -168,7 +177,7 @@ function Dashboard() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Enter search query..."
+              placeholder="Enter site name or keyword..."
               className="search-input"
             />
             <button type="submit" className="search-button" disabled={searching}>
@@ -190,8 +199,8 @@ function Dashboard() {
               <div className="empty-results">
                 <p>No results found in database.</p>
                 <p className="empty-subtitle">Would you like to search the web?</p>
-                <button 
-                  onClick={handleCrawlWeb} 
+                <button
+                  onClick={handleCrawlWeb}
                   className="crawl-button"
                   disabled={crawling}
                 >
@@ -208,7 +217,11 @@ function Dashboard() {
                 {searchResults.map((link) => (
                   <div
                     key={link._id}
-                    className={`result-item ${link.hasPasskey === false ? 'result-item--no-passkey' : 'result-item--passkey'}`}
+                    className={`result-item ${
+                      link.passkeyType === 'none' ? 'result-item--no-passkey' :
+                      link.passkeyType === 'third-party' ? 'result-item--third-party' :
+                      'result-item--passkey'
+                    }`}
                   >
                     <div className="result-header">
                       <h3 className="result-title">
@@ -216,8 +229,14 @@ function Dashboard() {
                           {link.title}
                         </a>
                       </h3>
-                      <span className={`result-passkey-badge ${link.hasPasskey === false ? 'badge--no-passkey' : 'badge--passkey'}`}>
-                        {link.hasPasskey === false ? '🔒 No Passkey' : '🔑 Passkey'}
+                      <span className={`result-passkey-badge ${
+                        link.passkeyType === 'none' ? 'badge--no-passkey' :
+                        link.passkeyType === 'third-party' ? 'badge--third-party' :
+                        'badge--passkey'
+                      }`}>
+                        {link.passkeyType === 'none' ? '🔒 No Passkey' :
+                         link.passkeyType === 'third-party' ? '🔗 3rd Party Passkey' :
+                         '🔑 Native Passkey'}
                       </span>
                     </div>
                     {link.description && (
@@ -258,8 +277,15 @@ function Dashboard() {
             <div className="history-list">
               {searchHistory.map((item) => (
                 <div key={item.id} className="history-item">
-                  <div className="history-content">
-                    <span className="history-query">{item.query}</span>
+                  <div
+                    className="history-content"
+                    onClick={() => handleHistoryClick(item.query)}
+                    title="Click to search again"
+                  >
+                    <span className="history-query">
+                      <span className="history-search-icon">🔍</span>
+                      {item.query}
+                    </span>
                     <span className="history-timestamp">{item.timestamp}</span>
                   </div>
                   <button

@@ -10,8 +10,26 @@ import { enterTestEmail }           from './crawler/emailInteractor.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildResult(hasPasskey, method, title, foundUrl, description) {
-  return { hasPasskey, detectionMethod: method, title, description, foundAtUrl: foundUrl };
+/**
+ * Compares the registrable domain (e.g. "apple.com") of the target URL
+ * with that of the URL where the passkey signal was found.
+ * Same domain → 'native', different domain → 'third-party'.
+ */
+function classifyPasskeyType(targetUrl, signalSourceUrl) {
+  if (!signalSourceUrl) return 'native';
+  try {
+    const registrable = (url) => {
+      const parts = new URL(url).hostname.split('.');
+      return parts.slice(-2).join('.');
+    };
+    return registrable(targetUrl) === registrable(signalSourceUrl) ? 'native' : 'third-party';
+  } catch (_) {
+    return 'native';
+  }
+}
+
+function buildResult(hasPasskey, passkeyType, method, title, foundUrl, description) {
+  return { hasPasskey, passkeyType, detectionMethod: method, title, description, foundAtUrl: foundUrl };
 }
 
 async function snapshot(page) {
@@ -37,23 +55,30 @@ export const crawlWeb = async (query) => {
       console.log(`[Crawler] Checking ${site.url}…`);
       const result = await detectPasskey(site.url);
 
-      results.push(result.hasPasskey ? {
-        title:       site.title || result.title || 'Passkey-Enabled Site',
-        url:         site.url,
-        description: result.description || `Supports Passkey/WebAuthn. ${result.detectionMethod}`,
-        category:    'Passkey-Enabled',
-        tags:        [],
-        hasPasskey:  true,
-      } : {
-        title:       site.title || 'Site',
-        url:         site.url,
-        description: 'No Passkey/WebAuthn support detected.',
-        category:    'No-Passkey',
-        tags:        [],
-        hasPasskey:  false,
-      });
-
-      console.log(`[Crawler] ${result.hasPasskey ? '✓' : '✗'} ${site.url}`);
+      if (result.hasPasskey) {
+        const typeLabel = result.passkeyType === 'native' ? 'Native Passkey' : 'Third-Party Passkey';
+        results.push({
+          title:       site.title || result.title || 'Passkey-Enabled Site',
+          url:         site.url,
+          description: result.description || `Supports Passkey/WebAuthn. ${result.detectionMethod}`,
+          category:    typeLabel,
+          tags:        [],
+          hasPasskey:  true,
+          passkeyType: result.passkeyType,
+        });
+        console.log(`[Crawler] ✓ ${site.url} (${result.passkeyType})`);
+      } else {
+        results.push({
+          title:       site.title || 'Site',
+          url:         site.url,
+          description: 'No Passkey/WebAuthn support detected.',
+          category:    'No-Passkey',
+          tags:        [],
+          hasPasskey:  false,
+          passkeyType: 'none',
+        });
+        console.log(`[Crawler] ✗ ${site.url}`);
+      }
     }
 
     return results;
@@ -65,13 +90,10 @@ export const crawlWeb = async (query) => {
 
 /**
  * Detects whether a single URL supports passkey/WebAuthn authentication.
- * Detection runs in three stages:
- *   1. Static  — DOM/script/keyword scan on each page
- *   2. Runtime — checks if navigator.credentials.get/create was actually called
- *   3. Network — checks for FIDO2/WebAuthn-related network requests
+ * Returns { hasPasskey, passkeyType: 'native'|'third-party'|'none', ... }
  *
  * @param {string} url
- * @returns {Promise<{hasPasskey: boolean, detectionMethod?: string, ...}>}
+ * @returns {Promise<Object>}
  */
 export async function detectPasskey(url) {
   let browser;
@@ -86,13 +108,11 @@ export async function detectPasskey(url) {
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     });
 
-    // 2nd-pass interceptor: must be injected before any page navigates
     await injectWebAuthnInterceptor(context);
 
     const page = await context.newPage();
     page.setDefaultTimeout(30000);
 
-    // Track network-level FIDO2/WebAuthn requests as a last-resort signal
     const fido2Requests = [];
     page.on('request', req => {
       const u = req.url().toLowerCase();
@@ -101,7 +121,6 @@ export async function detectPasskey(url) {
       }
     });
 
-    // --- Navigate to target ---
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     try { await page.waitForLoadState('networkidle', { timeout: 8000 }); }
     catch (_) { console.log('[Crawler] Network still active, continuing'); }
@@ -111,15 +130,17 @@ export async function detectPasskey(url) {
     const staticMain = await checkForPasskeyOnPage(page);
     if (staticMain.found) {
       const s = await snapshot(page);
+      const passkeyType = classifyPasskeyType(url, staticMain.signalSourceUrl);
       await browser.close();
-      return buildResult(true, `Static: ${staticMain.method}`, s.title, s.url, 'Found on main page');
+      return buildResult(true, passkeyType, `Static: ${staticMain.method}`, s.title, s.url, 'Found on main page');
     }
 
     const runtimeMain = await checkRuntimeWebAuthnCall(page);
     if (runtimeMain.called) {
       const s = await snapshot(page);
+      const passkeyType = classifyPasskeyType(url, runtimeMain.signalSourceUrl);
       await browser.close();
-      return buildResult(true, `Runtime: navigator.credentials.${runtimeMain.method}() on main page`, s.title, s.url, 'WebAuthn API called on main page');
+      return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeMain.method}() on main page`, s.title, s.url, 'WebAuthn API called on main page');
     }
 
     // === Stage: login page ===
@@ -135,15 +156,17 @@ export async function detectPasskey(url) {
         const staticLogin = await checkForPasskeyOnPage(page);
         if (staticLogin.found) {
           const s = await snapshot(page);
+          const passkeyType = classifyPasskeyType(url, staticLogin.signalSourceUrl);
           await browser.close();
-          return buildResult(true, `Static: ${staticLogin.method}`, s.title, s.url, 'Found on login page');
+          return buildResult(true, passkeyType, `Static: ${staticLogin.method}`, s.title, s.url, 'Found on login page');
         }
 
         const runtimeLogin = await checkRuntimeWebAuthnCall(page);
         if (runtimeLogin.called) {
           const s = await snapshot(page);
+          const passkeyType = classifyPasskeyType(url, runtimeLogin.signalSourceUrl);
           await browser.close();
-          return buildResult(true, `Runtime: navigator.credentials.${runtimeLogin.method}() on login page`, s.title, s.url, 'WebAuthn API called on login page');
+          return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeLogin.method}() on login page`, s.title, s.url, 'WebAuthn API called on login page');
         }
 
         // === Stage: after email entry ===
@@ -159,15 +182,17 @@ export async function detectPasskey(url) {
             const staticEmail = await checkForPasskeyOnPage(page);
             if (staticEmail.found) {
               const s = await snapshot(page);
+              const passkeyType = classifyPasskeyType(url, staticEmail.signalSourceUrl);
               await browser.close();
-              return buildResult(true, `Static: ${staticEmail.method}`, s.title, s.url, 'Found after email entry');
+              return buildResult(true, passkeyType, `Static: ${staticEmail.method}`, s.title, s.url, 'Found after email entry');
             }
 
             const runtimeEmail = await checkRuntimeWebAuthnCall(page);
             if (runtimeEmail.called) {
               const s = await snapshot(page);
+              const passkeyType = classifyPasskeyType(url, runtimeEmail.signalSourceUrl);
               await browser.close();
-              return buildResult(true, `Runtime: navigator.credentials.${runtimeEmail.method}() after email entry`, s.title, s.url, 'WebAuthn API called during auth flow');
+              return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeEmail.method}() after email entry`, s.title, s.url, 'WebAuthn API called during auth flow');
             }
           }
         } catch (e) {
@@ -181,16 +206,17 @@ export async function detectPasskey(url) {
     // === Stage: network requests fallback ===
     if (fido2Requests.length > 0) {
       const s = await snapshot(page);
+      // Network requests don't have a clear source URL; default to native
       await browser.close();
-      return buildResult(true, 'Network: FIDO2/WebAuthn request detected', s.title, s.url, 'WebAuthn network request observed');
+      return buildResult(true, 'native', 'Network: FIDO2/WebAuthn request detected', s.title, s.url, 'WebAuthn network request observed');
     }
 
     await browser.close();
-    return { hasPasskey: false };
+    return { hasPasskey: false, passkeyType: 'none' };
 
   } catch (error) {
     if (browser) await browser.close();
     console.error(`[Crawler] Error at ${url}:`, error.message);
-    return { hasPasskey: false, error: error.message };
+    return { hasPasskey: false, passkeyType: 'none', error: error.message };
   }
 }
