@@ -29,7 +29,7 @@ On the main dashboard, type the name or URL of a website you're curious about (e
   - **Red** — no passkey support was detected
 
 ### 3. Search the Web (Crawling)
-If no results are found in the database, a **"Search the Web"** button will appear. Clicking it will automatically visit the website, analyze it for Passkey/WebAuthn support, and save the result to the shared database for everyone.
+If no results are found in the database, a **"Search the Web"** button will appear. Clicking it will automatically visit the website, analyze it for Passkey/WebAuthn support across the main page, login flow, login iframes, and some popup/new-tab auth flows, then save the result to the shared database for everyone.
 
 ### 4. View Public Dashboards
 At the top of the dashboard, you'll find three shared boards that anyone can view:
@@ -54,3 +54,4 @@ Click the **Settings** button in the header to update your username or account d
 - Crawled site results are **shared across all users** — once someone finds a site, everyone benefits.
 - The app automatically detects Passkey support by visiting the site's login flow, so no manual input is needed.
 - Detection is stored with a `passkeyType` classification: `native`, `third-party`, or `none`.
+- Crawl metadata also records how detection happened, including `crawlStatus`, `detectionSource`, `signalSourceUrl`, and `finalUrl`.

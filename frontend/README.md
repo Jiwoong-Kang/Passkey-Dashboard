@@ -77,6 +77,8 @@ The main page after login. Includes:
 - **Search history** — personal list of past searches, with delete and clear options
 - **Navigation buttons** in the header to reach the three public dashboards
 
+The backend also stores crawl metadata such as `crawlStatus`, `detectionSource`, `signalSourceUrl`, and `finalUrl`, although the current UI mainly focuses on `passkeyType`.
+
 ### Passkey Sites (`/passkey-sites`)
 Public dashboard showing all sites classified as `native` passkey support, across all users. Includes a live filter bar to search by name or URL.
 

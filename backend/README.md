@@ -58,7 +58,7 @@ backend/
 │   └── auth.js            # JWT verification middleware
 ├── models/
 │   ├── User.js            # User account model
-│   ├── Link.js            # Discovered site model (hasPasskey + passkeyType)
+│   ├── Link.js            # Discovered site model (passkey type + crawl metadata)
 │   └── SearchHistory.js   # Per-user search history model
 ├── routes/
 │   ├── auth.js            # Signup / Login
@@ -67,7 +67,7 @@ backend/
 │   └── search.js          # Search history
 ├── services/
 │   ├── crawler.js         # Main Playwright-based Passkey detection orchestrator
-│   └── crawler/           # Modular crawler helpers (detectors, frames, navigation)
+│   └── crawler/           # Modular crawler helpers (detectors, frames, popups, auth flow)
 ├── .env                   # Environment variables (you must create this)
 ├── package.json
 └── server.js              # App entry point
@@ -109,7 +109,7 @@ All endpoints marked **(auth)** require a `Bearer` token in the `Authorization` 
 
 ### Links (Sites)
 
-Sites are stored globally and shared across all users. Each site keeps both a legacy `hasPasskey` boolean and a richer `passkeyType` classification:
+Sites are stored globally and shared across all users. Each site keeps both a legacy `hasPasskey` boolean and richer crawl metadata:
 
 - `native` — passkey signal detected on the same site / same-brand domain
 - `third-party` — passkey signal detected on an external IdP or auth domain
@@ -133,7 +133,14 @@ Sites are stored globally and shared across all users. Each site keeps both a le
 { "query": "github" }
 ```
 
-The crawl endpoint visits the target site using Playwright, detects Passkey/WebAuthn support across the main page and login flow, then saves the result with both `hasPasskey` and `passkeyType`.
+The crawl endpoint visits the target site using Playwright, detects Passkey/WebAuthn support across the main page and login flow, then saves the result with:
+
+- `hasPasskey`
+- `passkeyType`
+- `crawlStatus`
+- `detectionSource`
+- `signalSourceUrl`
+- `finalUrl`
 
 ---
 
@@ -167,9 +174,10 @@ The crawler (`services/crawler.js`) uses **Playwright** (Chromium) to:
 3. Look for Passkey/WebAuthn JavaScript APIs, keywords, `autocomplete="webauthn"`, and UI elements
 4. Navigate to the login page if needed
 5. Inspect login-related iframes as well as the main document
-6. Enter a test email to trigger the authentication flow
-7. Intercept runtime `navigator.credentials.get/create` calls
-8. Monitor network requests for FIDO2/WebAuthn endpoints
+6. Watch for popup / new-tab auth windows
+7. Advance through multi-step auth flows using email entry and "Continue / Next / Sign in with ..." actions
+8. Intercept runtime `navigator.credentials.get/create` calls
+9. Monitor network requests for FIDO2/WebAuthn endpoints
 
 If passkey support is detected, the crawler classifies it as:
 
@@ -179,6 +187,25 @@ If passkey support is detected, the crawler classifies it as:
 If no signal is detected, the site is stored as `none`.
 
 All results are stored in the shared `Link` collection.
+
+### Detection Source
+
+Each positive result also records a coarse `detectionSource` value:
+
+- `static` — detected from page text, DOM, inline scripts, or passkey UI
+- `runtime` — detected from an actual `navigator.credentials` call
+- `popup` — detected inside a popup or new tab
+- `network` — detected only from WebAuthn/FIDO2 network activity
+
+### Crawl Status
+
+Each crawl also stores a `crawlStatus`:
+
+- `success` — page loaded and crawl completed normally
+- `unreachable` — host could not be reached or resolved
+- `blocked` — reserved for anti-bot / access-denied scenarios
+- `partial` — reserved for flows that started but could not be completed
+- `error` — unexpected crawler failure
 
 ---
 
@@ -205,6 +232,11 @@ The `auth` middleware decodes the token and attaches `req.userId` to the request
   category: String,        // "Native Passkey", "Third-Party Passkey", or "No-Passkey"
   hasPasskey: Boolean,     // legacy flag: true = passkey detected, false = none detected
   passkeyType: String,     // "native" | "third-party" | "none"
+  crawlStatus: String,     // "success" | "unreachable" | "blocked" | "partial" | "error"
+  detectionSource: String, // "static" | "runtime" | "network" | "popup"
+  signalSourceUrl: String, // URL where the passkey signal was observed
+  finalUrl: String,        // final page URL reached during crawling
+  lastCrawledAt: Date,
   createdAt: Date,
   updatedAt: Date
 }
