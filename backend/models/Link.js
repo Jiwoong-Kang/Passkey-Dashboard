@@ -34,6 +34,24 @@ const linkSchema = new mongoose.Schema({
     enum: ['native', 'third-party', 'none'],
     default: 'native'
   },
+  crawlStatus: {
+    type: String,
+    enum: ['success', 'unreachable', 'blocked', 'partial', 'error'],
+    default: 'success'
+  },
+  detectionSource: {
+    type: String,
+    enum: ['static', 'runtime', 'network', 'popup'],
+    default: 'static'
+  },
+  signalSourceUrl: {
+    type: String,
+    default: ''
+  },
+  finalUrl: {
+    type: String,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now

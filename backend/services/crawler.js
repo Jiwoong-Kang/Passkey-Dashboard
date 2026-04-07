@@ -1,39 +1,61 @@
 import { chromium } from 'playwright';
 
-import { searchForSites }           from './crawler/urlBuilder.js';
-import { checkForPasskeyOnPage }    from './crawler/staticDetector.js';
-import { injectWebAuthnInterceptor, checkRuntimeWebAuthnCall } from './crawler/runtimeDetector.js';
-import { navigateToLogin }          from './crawler/loginNavigator.js';
-import { enterTestEmail }           from './crawler/emailInteractor.js';
+import { searchForSites }                                        from './crawler/urlBuilder.js';
+import { checkForPasskeyOnPage }                                 from './crawler/staticDetector.js';
+import { injectWebAuthnInterceptor, checkRuntimeWebAuthnCall }   from './crawler/runtimeDetector.js';
+import { navigateToLogin }                                       from './crawler/loginNavigator.js';
+import { advanceAuthFlow }                                       from './crawler/authFlowTracker.js';
+import { withPopupWatch }                                        from './crawler/popupHandler.js';
+import { classifyPasskeyType }                                   from './crawler/brandMapper.js';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Internal helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Compares the registrable domain (e.g. "apple.com") of the target URL
- * with that of the URL where the passkey signal was found.
- * Same domain → 'native', different domain → 'third-party'.
+ * Runs static + runtime detection at the current page state.
+ * Returns a unified detection object or null.
  */
-function classifyPasskeyType(targetUrl, signalSourceUrl) {
-  if (!signalSourceUrl) return 'native';
-  try {
-    const registrable = (url) => {
-      const parts = new URL(url).hostname.split('.');
-      return parts.slice(-2).join('.');
+async function detectNow(page) {
+  const s = await checkForPasskeyOnPage(page);
+  if (s.found) return { method: s.method, signalSourceUrl: s.signalSourceUrl };
+
+  const r = await checkRuntimeWebAuthnCall(page);
+  if (r.called) {
+    return {
+      method: `Runtime: navigator.credentials.${r.method}()`,
+      signalSourceUrl: r.signalSourceUrl,
     };
-    return registrable(targetUrl) === registrable(signalSourceUrl) ? 'native' : 'third-party';
-  } catch (_) {
-    return 'native';
   }
+
+  return null;
 }
 
-function buildResult(hasPasskey, passkeyType, method, title, foundUrl, description) {
-  return { hasPasskey, passkeyType, detectionMethod: method, title, description, foundAtUrl: foundUrl };
+/**
+ * Builds the full result object returned by detectPasskey().
+ * Infers a coarse detection source from the method string.
+ */
+function inferDetectionSource(method) {
+  const m = (method || '').toLowerCase();
+
+  if (m.includes('popup')) return 'popup';
+  if (m.startsWith('runtime:') || m.includes('navigator.credentials')) return 'runtime';
+  if (m.startsWith('network:')) return 'network';
+  return 'static';
 }
 
-async function snapshot(page) {
-  return { title: await page.title(), url: page.url() };
+function buildResult(hasPasskey, passkeyType, method, title, finalUrl, description, extra = {}) {
+  return {
+    hasPasskey,
+    passkeyType,
+    detectionMethod:     method,
+    detectionSource:     inferDetectionSource(method),
+    title,
+    description,
+    finalUrl,
+    signalSourceUrl:     extra.signalSourceUrl || finalUrl,
+    crawlStatus:         extra.crawlStatus || 'success',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +63,9 @@ async function snapshot(page) {
 // ---------------------------------------------------------------------------
 
 /**
- * Entry point: given a user query, returns a list of sites with passkey status.
+ * Entry point: given a user query, crawls up to 5 candidate URLs and
+ * returns a list of result objects ready to be saved to the database.
+ *
  * @param {string} query
  * @returns {Promise<Array>}
  */
@@ -58,15 +82,19 @@ export const crawlWeb = async (query) => {
       if (result.hasPasskey) {
         const typeLabel = result.passkeyType === 'native' ? 'Native Passkey' : 'Third-Party Passkey';
         results.push({
-          title:       site.title || result.title || 'Passkey-Enabled Site',
-          url:         site.url,
-          description: result.description || `Supports Passkey/WebAuthn. ${result.detectionMethod}`,
-          category:    typeLabel,
-          tags:        [],
-          hasPasskey:  true,
-          passkeyType: result.passkeyType,
+          title:               site.title || result.title || 'Passkey-Enabled Site',
+          url:                 site.url,
+          description:         result.description || `Supports Passkey/WebAuthn. ${result.detectionMethod}`,
+          category:            typeLabel,
+          tags:                [],
+          hasPasskey:          true,
+          passkeyType:         result.passkeyType,
+          detectionSource:     result.detectionSource,
+          signalSourceUrl:     result.signalSourceUrl || '',
+          finalUrl:            result.finalUrl || site.url,
+          crawlStatus:         result.crawlStatus || 'success',
         });
-        console.log(`[Crawler] ✓ ${site.url} (${result.passkeyType})`);
+        console.log(`[Crawler] ✓ ${site.url} (${result.passkeyType}, source=${result.detectionSource})`);
       } else {
         results.push({
           title:       site.title || 'Site',
@@ -76,8 +104,9 @@ export const crawlWeb = async (query) => {
           tags:        [],
           hasPasskey:  false,
           passkeyType: 'none',
+          crawlStatus: result.crawlStatus || 'success',
         });
-        console.log(`[Crawler] ✗ ${site.url}`);
+        console.log(`[Crawler] ✗ ${site.url} (status: ${result.crawlStatus || 'success'})`);
       }
     }
 
@@ -89,8 +118,15 @@ export const crawlWeb = async (query) => {
 };
 
 /**
- * Detects whether a single URL supports passkey/WebAuthn authentication.
- * Returns { hasPasskey, passkeyType: 'native'|'third-party'|'none', ... }
+ * Detects passkey support for a single URL.
+ * Detection runs in stages — stops as soon as a positive signal is found.
+ *
+ * Stage 1 — main page: static + runtime detectors
+ * Stage 2 — main page: popup/new-tab watch
+ * Stage 3 — navigate to login page
+ * Stage 4 — login page: static + runtime detectors
+ * Stage 5 — multi-step auth flow (email entry + next-step button clicks)
+ * Stage 6 — network request fallback (FIDO2/WebAuthn endpoint observed)
  *
  * @param {string} url
  * @returns {Promise<Object>}
@@ -104,8 +140,8 @@ export async function detectPasskey(url) {
     });
 
     const context = await browser.newContext({
-      viewport:  { width: 1920, height: 1080 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport:          { width: 1920, height: 1080 },
+      userAgent:         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       ignoreHTTPSErrors: true,
     });
 
@@ -114,110 +150,91 @@ export async function detectPasskey(url) {
     const page = await context.newPage();
     page.setDefaultTimeout(30000);
 
+    // Track FIDO2/WebAuthn network requests as a last-resort signal
     const fido2Requests = [];
     page.on('request', req => {
       const u = req.url().toLowerCase();
       if (['webauthn', 'fido', 'attestation', 'assertion', 'passkey'].some(kw => u.includes(kw))) {
-        fido2Requests.push(u);
+        fido2Requests.push(req.url());
       }
     });
 
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    try { await page.waitForLoadState('networkidle', { timeout: 8000 }); }
-    catch (_) { console.log('[Crawler] Network still active, continuing'); }
-    await page.waitForTimeout(5000);
-
-    // === Stage: main page ===
-    const staticMain = await checkForPasskeyOnPage(page);
-    if (staticMain.found) {
-      const s = await snapshot(page);
-      const passkeyType = classifyPasskeyType(url, staticMain.signalSourceUrl);
-      await browser.close();
-      return buildResult(true, passkeyType, `Static: ${staticMain.method}`, s.title, s.url, 'Found on main page');
-    }
-
-    const runtimeMain = await checkRuntimeWebAuthnCall(page);
-    if (runtimeMain.called) {
-      const s = await snapshot(page);
-      const passkeyType = classifyPasskeyType(url, runtimeMain.signalSourceUrl);
-      await browser.close();
-      return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeMain.method}() on main page`, s.title, s.url, 'WebAuthn API called on main page');
-    }
-
-    // === Stage: login page ===
+    // Load the target page
     try {
-      const reachedLogin = await navigateToLogin(page);
-      if (reachedLogin) {
-        try {
-          await page.waitForLoadState('domcontentloaded', { timeout: 8000 });
-          await page.waitForLoadState('networkidle',      { timeout: 5000 }).catch(() => {});
-        } catch (_) {}
-        await page.waitForTimeout(5000);
-
-        const staticLogin = await checkForPasskeyOnPage(page);
-        if (staticLogin.found) {
-          const s = await snapshot(page);
-          const passkeyType = classifyPasskeyType(url, staticLogin.signalSourceUrl);
-          await browser.close();
-          return buildResult(true, passkeyType, `Static: ${staticLogin.method}`, s.title, s.url, 'Found on login page');
-        }
-
-        const runtimeLogin = await checkRuntimeWebAuthnCall(page);
-        if (runtimeLogin.called) {
-          const s = await snapshot(page);
-          const passkeyType = classifyPasskeyType(url, runtimeLogin.signalSourceUrl);
-          await browser.close();
-          return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeLogin.method}() on login page`, s.title, s.url, 'WebAuthn API called on login page');
-        }
-
-        // === Stage: after email entry ===
-        try {
-          const enteredEmail = await enterTestEmail(page);
-          if (enteredEmail) {
-            try {
-              await page.waitForLoadState('domcontentloaded', { timeout: 8000 });
-              await page.waitForLoadState('networkidle',      { timeout: 5000 }).catch(() => {});
-            } catch (_) {}
-            await page.waitForTimeout(5000);
-
-            const staticEmail = await checkForPasskeyOnPage(page);
-            if (staticEmail.found) {
-              const s = await snapshot(page);
-              const passkeyType = classifyPasskeyType(url, staticEmail.signalSourceUrl);
-              await browser.close();
-              return buildResult(true, passkeyType, `Static: ${staticEmail.method}`, s.title, s.url, 'Found after email entry');
-            }
-
-            const runtimeEmail = await checkRuntimeWebAuthnCall(page);
-            if (runtimeEmail.called) {
-              const s = await snapshot(page);
-              const passkeyType = classifyPasskeyType(url, runtimeEmail.signalSourceUrl);
-              await browser.close();
-              return buildResult(true, passkeyType, `Runtime: navigator.credentials.${runtimeEmail.method}() after email entry`, s.title, s.url, 'WebAuthn API called during auth flow');
-            }
-          }
-        } catch (e) {
-          console.log('[Crawler] Email entry error:', e.message);
-        }
-      }
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     } catch (e) {
-      console.log('[Crawler] Login navigation error:', e.message);
+      await browser.close();
+      const status = e.message.includes('ERR_NAME_NOT_RESOLVED') ||
+                     e.message.includes('ERR_CONNECTION_REFUSED') ? 'unreachable' : 'error';
+      return { hasPasskey: false, passkeyType: 'none', crawlStatus: status, error: e.message };
+    }
+    try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch (_) {}
+    await page.waitForTimeout(3000);
+
+    // ── Stage 1: main page ──────────────────────────────────────────────────
+    let hit = await detectNow(page);
+    if (hit) {
+      const passkeyType = classifyPasskeyType(url, hit.signalSourceUrl || page.url());
+      const s = { title: await page.title(), url: page.url() };
+      await browser.close();
+      return buildResult(true, passkeyType, hit.method, s.title, s.url, 'Found on main page', { signalSourceUrl: hit.signalSourceUrl });
     }
 
-    // === Stage: network requests fallback ===
-    if (fido2Requests.length > 0) {
-      const s = await snapshot(page);
-      // Network requests don't have a clear source URL; default to native
+    // ── Stage 2: popup watch on main page ───────────────────────────────────
+    const popupMain = await withPopupWatch(context, () => page.waitForTimeout(1500));
+    if (popupMain.found) {
+      const passkeyType = classifyPasskeyType(url, popupMain.signalSourceUrl);
       await browser.close();
-      return buildResult(true, 'native', 'Network: FIDO2/WebAuthn request detected', s.title, s.url, 'WebAuthn network request observed');
+      return buildResult(true, passkeyType, popupMain.method, await page.title(), page.url(), 'Found in popup from main page', { signalSourceUrl: popupMain.signalSourceUrl });
+    }
+
+    // ── Stage 3: navigate to login ──────────────────────────────────────────
+    let reachedLogin = false;
+    try { reachedLogin = await navigateToLogin(page); }
+    catch (e) { console.log('[Crawler] Login navigation error:', e.message); }
+
+    if (reachedLogin) {
+      try { await page.waitForLoadState('domcontentloaded', { timeout: 8000 }); } catch (_) {}
+      await page.waitForTimeout(3000);
+
+      // ── Stage 4: login page ───────────────────────────────────────────────
+      hit = await detectNow(page);
+      if (hit) {
+        const passkeyType = classifyPasskeyType(url, hit.signalSourceUrl || page.url());
+        const s = { title: await page.title(), url: page.url() };
+        await browser.close();
+        return buildResult(true, passkeyType, hit.method, s.title, s.url, 'Found on login page', { signalSourceUrl: hit.signalSourceUrl });
+      }
+
+      // ── Stage 5: multi-step auth flow ─────────────────────────────────────
+      try {
+        const flowHit = await advanceAuthFlow(page);
+        if (flowHit) {
+          const passkeyType = classifyPasskeyType(url, flowHit.signalSourceUrl || page.url());
+          const s = { title: await page.title(), url: page.url() };
+          await browser.close();
+          return buildResult(true, passkeyType, flowHit.method, s.title, s.url, 'Found during multi-step auth flow', { signalSourceUrl: flowHit.signalSourceUrl });
+        }
+      } catch (e) {
+        console.log('[Crawler] Auth flow error:', e.message);
+      }
+    }
+
+    // ── Stage 6: network fallback ───────────────────────────────────────────
+    if (fido2Requests.length > 0) {
+      const signalUrl   = fido2Requests[0];
+      const passkeyType = classifyPasskeyType(url, signalUrl);
+      const s = { title: await page.title(), url: page.url() };
+      await browser.close();
+      return buildResult(true, passkeyType, 'Network: FIDO2/WebAuthn request detected', s.title, s.url, 'WebAuthn network request observed', { signalSourceUrl: signalUrl });
     }
 
     await browser.close();
-    return { hasPasskey: false, passkeyType: 'none' };
+    return { hasPasskey: false, passkeyType: 'none', crawlStatus: 'success' };
 
   } catch (error) {
     if (browser) await browser.close();
     console.error(`[Crawler] Error at ${url}:`, error.message);
-    return { hasPasskey: false, passkeyType: 'none', error: error.message };
+    return { hasPasskey: false, passkeyType: 'none', crawlStatus: 'error', error: error.message };
   }
 }

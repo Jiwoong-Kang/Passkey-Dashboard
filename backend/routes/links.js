@@ -63,14 +63,18 @@ router.post('/crawl', authMiddleware, async (req, res) => {
       
       if (!existingLink) {
         const link = new Link({
-          title: result.title,
-          url: result.url,
-          description: result.description || '',
-          category: result.category || 'Web Result',
-          tags: [],
-          hasPasskey: result.hasPasskey !== undefined ? result.hasPasskey : true,
-          passkeyType: result.passkeyType || (result.hasPasskey ? 'native' : 'none'),
-          lastCrawledAt: new Date(),
+          title:               result.title,
+          url:                 result.url,
+          description:         result.description || '',
+          category:            result.category    || 'Web Result',
+          tags:                [],
+          hasPasskey:          result.hasPasskey !== undefined ? result.hasPasskey : true,
+          passkeyType:         result.passkeyType         || (result.hasPasskey ? 'native' : 'none'),
+          crawlStatus:         result.crawlStatus         || 'success',
+          detectionSource:     result.detectionSource     || 'static',
+          signalSourceUrl:     result.signalSourceUrl     || '',
+          finalUrl:            result.finalUrl            || result.url,
+          lastCrawledAt:       new Date(),
         });
         
         await link.save();
